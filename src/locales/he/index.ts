@@ -6,6 +6,7 @@ import type { LocaleDefinition } from '../..';
 import cell_phone from './cell_phone';
 import color from './color';
 import commerce from './commerce';
+import company from './company';
 import date from './date';
 import location from './location';
 import lorem from './lorem';
@@ -14,10 +15,17 @@ import music from './music';
 import person from './person';
 import phone_number from './phone_number';
 
+/**
+ * The locale data for the `he` locale.
+ *
+ * - Language: Hebrew
+ * - Endonym: עברית
+ */
 const he: LocaleDefinition = {
   cell_phone,
   color,
   commerce,
+  company,
   date,
   location,
   lorem,

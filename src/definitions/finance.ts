@@ -13,7 +13,7 @@ export type FinanceDefinition = LocaleEntry<{
    * The pattern by (lowercase) issuer name used to generate credit card codes.
    * `L` will be replaced by the check bit.
    *
-   * @see faker.helpers.replaceCreditCardSymbols()
+   * @see faker.helpers.replaceCreditCardSymbols(): For more information about how the pattern is used.
    */
   credit_card: { [issuer: string]: string[] };
 
@@ -26,4 +26,9 @@ export type FinanceDefinition = LocaleEntry<{
    * Types of transactions (e.g. `deposit`).
    */
   transaction_type: string[];
+
+  /**
+   * The pattern used to generate transaction descriptions.
+   */
+  transaction_description_pattern: string[];
 }>;

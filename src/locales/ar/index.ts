@@ -11,10 +11,15 @@ import location from './location';
 import lorem from './lorem';
 import metadata from './metadata';
 import person from './person';
-import phone_number from './phone_number';
 import team from './team';
 import vehicle from './vehicle';
 
+/**
+ * The locale data for the `ar` locale.
+ *
+ * - Language: Arabic
+ * - Endonym: اَلْعَرَبِيَّةُ
+ */
 const ar: LocaleDefinition = {
   cell_phone,
   color,
@@ -24,7 +29,6 @@ const ar: LocaleDefinition = {
   lorem,
   metadata,
   person,
-  phone_number,
   team,
   vehicle,
 };

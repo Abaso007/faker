@@ -1,18 +1,12 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "module": "ESNext",
     "strict": true,
     "noEmit": true,
-    "declaration": true,
     "stripInternal": true,
-
-    // We need to disable these for now, and need to tackle them in another PR
-    "strictNullChecks": false,
-    "noImplicitAny": false,
-
-    // These are configs specifically for !build and have to be reverted in the tsconfig.build.json
+    "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true
@@ -20,7 +14,9 @@
   "exclude": [
     "node_modules",
     "dist",
-    // required for the typedoc related tests on macOS #2280
-    "test/scripts/apidoc/temp"
+    // Ignore the generated API documentation
+    "docs/api",
+    // required for the signature related tests on macOS #2280
+    "test/scripts/apidocs/temp"
   ]
 }

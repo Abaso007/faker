@@ -1,10 +1,10 @@
 <!-- This content is mostly copied over from https://github.com/vuejs/docs/blob/main/src/api/ApiIndex.vue -->
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { slugify } from '../.vitepress/shared/utils/slugify';
 import apiSearchIndex from './api-search-index.json';
-import { APIGroup } from './api-types';
+import type { APIGroup } from './api-types';
 
 const query = ref('');
 const normalize = (s: string) => s.toLowerCase().replace(/-/g, ' ');
@@ -43,37 +43,6 @@ const filtered = computed(() => {
     })
     .filter((i) => i) as APIGroup[];
 });
-
-const apiFilter = ref<HTMLInputElement>();
-
-function apiSearchFocusHandler(event: KeyboardEvent): void {
-  if (event.key === 'Escape') {
-    if (apiFilter.value !== document.activeElement) {
-      query.value = '';
-    } else {
-      apiFilter.value!.blur();
-    }
-  } else if (event.key === 'Enter') {
-    if (apiFilter.value !== document.activeElement) return;
-    if (query.value === '') return;
-    const item = filtered.value[0].items[0];
-    if (!item) return;
-    const header = item.headers[0];
-    if (!header) return;
-    window.location.href = item.link + '#' + slugify(header.anchor);
-  } else if (
-    /^[a-z]$/.test(event.key) &&
-    !event.altKey &&
-    !event.ctrlKey &&
-    !event.shiftKey &&
-    !event.metaKey
-  ) {
-    apiFilter.value!.focus();
-  }
-}
-
-onMounted(() => window.addEventListener('keydown', apiSearchFocusHandler));
-onUnmounted(() => window.removeEventListener('keydown', apiSearchFocusHandler));
 </script>
 
 <template>
@@ -85,7 +54,6 @@ onUnmounted(() => window.removeEventListener('keydown', apiSearchFocusHandler));
         <input
           type="search"
           placeholder="Enter keyword"
-          ref="apiFilter"
           id="api-filter"
           v-model="query"
         />
@@ -101,8 +69,13 @@ onUnmounted(() => window.removeEventListener('keydown', apiSearchFocusHandler));
           </h3>
           <ul>
             <li v-for="h of item.headers" :key="h.anchor">
+              <!-- TODO @ST-DDT 2024-09-25: Remove this in v10 -->
               <a
-                :href="item.link + '#' + slugify(h.anchor)"
+                :href="
+                  item.link +
+                  '#' +
+                  (h.anchor === 'userName' ? 'username-1' : slugify(h.anchor))
+                "
                 :class="{ deprecated: h.deprecated }"
                 >{{ h.text }}</a
               >
@@ -152,7 +125,7 @@ h2 {
 
 h3 {
   letter-spacing: -0.01em;
-  color: var(--vp-c-green);
+  color: var(--vp-c-brand-1);
   font-size: 18px;
   margin-bottom: 1em;
   transition: color 0.5s;
@@ -179,7 +152,7 @@ h3 {
 }
 
 .api-groups ul a:hover {
-  color: var(--vp-c-green);
+  color: var(--vp-c-brand-1);
   transition: none;
 }
 
@@ -213,7 +186,7 @@ h3 {
 }
 
 .api-filter:focus {
-  border-color: var(--vp-c-green-light);
+  border-color: var(--vp-c-brand-2);
 }
 
 .no-match {

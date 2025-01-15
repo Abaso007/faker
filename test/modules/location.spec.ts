@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { faker, fakerEN_CA, fakerEN_US, FakerError } from '../../src';
-import { seededTests } from './../support/seededRuns';
+import {
+  FakerError,
+  allLocales,
+  faker,
+  fakerEN_CA,
+  fakerEN_US,
+} from '../../src';
+import { seededTests } from '../support/seeded-runs';
 import { times } from './../support/times';
 
 function degreesToRadians(degrees: number) {
@@ -12,7 +18,9 @@ function kilometersToMiles(miles: number) {
 }
 
 /**
- * Returns the number of decimal places a number has
+ * Returns the number of decimal places a number has.
+ *
+ * @param num The number to check.
  */
 function precision(num: number): number {
   const decimalPart = num.toString().split('.')[1];
@@ -53,9 +61,6 @@ describe('location', () => {
   seededTests(faker, 'location', (t) => {
     t.it('street');
 
-    // TODO @xDivisionByZerox 2023-04-16: add street name locale data to `en`
-    t.skip('streetName');
-
     t.it('buildingNumber');
 
     t.it('secondaryAddress');
@@ -66,11 +71,13 @@ describe('location', () => {
         .it('with useFullAddress options', { useFullAddress: true });
     });
 
-    t.itEach('city', 'cityName');
+    t.itEach('city');
 
     t.it('county');
 
     t.it('country');
+
+    t.it('continent');
 
     t.describe('countryCode', (t) => {
       t.it('noArgs')
@@ -87,9 +94,6 @@ describe('location', () => {
       'longitude'
     )((t) => {
       t.it('noArgs')
-        .it('with max', 10)
-        .it('with min', undefined, -10)
-        .it('with precision', undefined, undefined, 10)
         .it('with max option', { max: 10 })
         .it('with min option', { min: -10 })
         .it('with precision option', { precision: 10 })
@@ -120,41 +124,41 @@ describe('location', () => {
       t.it('noArgs').it('with options', { abbreviated: true });
     });
 
-    t.it('stateAbbr');
-
     t.it('timeZone');
+
+    t.it('language');
 
     t.describeEach(
       'direction',
       'cardinalDirection',
       'ordinalDirection'
     )((t) => {
-      t.it('noArgs')
-        .it('with boolean', false)
-        .it('with abbreviated option', { abbreviated: true });
+      t.it('noArgs').it('with abbreviated option', { abbreviated: true });
     });
 
     t.describe('zipCode', (t) => {
       t.it('noArgs')
         .it('with string', '###')
         .it('with format option', { format: '###-###' });
-      // These are currently commented out because non-default locales are currently not supported
+      // TODO @Shinigami92 2024-03-15: These are currently commented out because non-default locales are currently not supported
       // .it('with state option', { state: 'CA' })
       // .it('with options', { state: 'CA', format: '###-###' });
-    });
-
-    t.describe('zipCodeByState', (t) => {
-      t.it('noArgs');
-      // These are currently commented out because non-default locales are currently not supported
-      // .it('with string 1', 'CA')
-      // .it('with string 2', 'WA')
-      // .it('with state options', { state: 'WA' });
     });
   });
 
   describe.each(times(NON_SEEDED_BASED_RUN).map(() => faker.seed()))(
     'random seeded tests for seed %i',
     () => {
+      describe('continent()', () => {
+        it('returns random continent', () => {
+          const actual = faker.location.continent();
+
+          expect(actual).toBeTruthy();
+          expect(actual).toBeTypeOf('string');
+          expect(faker.definitions.location.continent).toContain(actual);
+        });
+      });
+
       describe('countryCode()', () => {
         it('returns random alpha-2 countryCode', () => {
           const countryCode = faker.location.countryCode('alpha-2');
@@ -209,7 +213,7 @@ describe('location', () => {
 
         it('should return a zip code with length 5 for ZIP codes that start with 0', () => {
           const zipCode = fakerEN_US.location.zipCode({ state: 'NH' });
-          expect(zipCode.length).toBe(5);
+          expect(zipCode).toHaveLength(5);
         });
 
         it('should throw when definitions.location.postcode_by_state not set', () => {
@@ -226,24 +230,6 @@ describe('location', () => {
           expect(() => fakerEN_US.location.zipCode({ state: 'XX' })).toThrow(
             new FakerError('No zip code definition found for state "XX"')
           );
-        });
-      });
-
-      describe('zipCodeByState()', () => {
-        it('returns zipCode valid for specified State', () => {
-          const states = ['IL', 'GA', 'WA'];
-
-          const zipCode1 = +fakerEN_US.location.zipCodeByState(states[0]);
-          expect(zipCode1).toBeGreaterThanOrEqual(60001);
-          expect(zipCode1).toBeLessThanOrEqual(62999);
-
-          const zipCode2 = +fakerEN_US.location.zipCodeByState(states[1]);
-          expect(zipCode2).toBeGreaterThanOrEqual(30001);
-          expect(zipCode2).toBeLessThanOrEqual(31999);
-
-          const zipCode3 = +fakerEN_US.location.zipCodeByState(states[2]);
-          expect(zipCode3).toBeGreaterThanOrEqual(98001);
-          expect(zipCode3).toBeLessThanOrEqual(99403);
         });
       });
 
@@ -401,7 +387,7 @@ describe('location', () => {
               isMetric,
             });
 
-            expect(coordinate.length).toBe(2);
+            expect(coordinate).toHaveLength(2);
             expect(coordinate[0]).toBeTypeOf('number');
             expect(coordinate[1]).toBeTypeOf('number');
 
@@ -424,6 +410,50 @@ describe('location', () => {
           }
         );
       });
+
+      describe('timeZone', () => {
+        it('should return a random timezone', () => {
+          const actual = faker.location.timeZone();
+          expect(faker.definitions.location.time_zone).toContain(actual);
+        });
+      });
+
+      describe('language()', () => {
+        it('should return a random language', () => {
+          const actual = faker.location.language();
+          expect(actual.name).toBeTruthy();
+          expect(actual.alpha2).toBeTruthy();
+          expect(actual.alpha2).toHaveLength(2);
+          expect(actual.alpha3).toBeTruthy();
+          expect(actual.alpha3).toHaveLength(3);
+
+          expect(faker.definitions.location.language).toContain(actual);
+        });
+      });
     }
   );
+});
+
+describe('definitions', () => {
+  describe('timeZone', () => {
+    it.each(Object.entries(allLocales))(
+      'locale data for %s should be a subset of the base locale',
+      (locale, data) => {
+        if (locale === 'base') {
+          expect(data.location?.time_zone).toSatisfy(Array.isArray);
+          expect(data.location?.time_zone?.length).toBeGreaterThan(0);
+          expect(data.location?.time_zone).toEqual(
+            allLocales.base.date?.time_zone
+          );
+        } else if (data.location?.time_zone != null) {
+          expect(data.location.time_zone).toSatisfy(Array.isArray);
+          expect(data.location.time_zone.length).toBeGreaterThan(0);
+          // expected and actual are flipped here
+          expect(allLocales.base.date?.time_zone).toEqual(
+            expect.arrayContaining(data.location.time_zone)
+          );
+        }
+      }
+    );
+  });
 });

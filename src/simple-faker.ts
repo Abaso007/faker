@@ -1,10 +1,11 @@
-import type { Mersenne } from './internal/mersenne/mersenne';
-import mersenne from './internal/mersenne/mersenne';
+import { randomSeed } from './internal/seed';
 import { DatatypeModule } from './modules/datatype';
 import { SimpleDateModule } from './modules/date';
 import { SimpleHelpersModule } from './modules/helpers';
 import { NumberModule } from './modules/number';
 import { StringModule } from './modules/string';
+import type { Randomizer } from './randomizer';
+import { generateMersenne53Randomizer } from './utils/mersenne';
 
 /**
  * This is a simplified Faker class that doesn't need any localized data to generate its output.
@@ -43,7 +44,7 @@ export class SimpleFaker {
    * Defaults to `() => new Date()`.
    *
    * @see [Reproducible Results](https://fakerjs.dev/guide/usage.html#reproducible-results)
-   * @see faker.seed() for reproducible results.
+   * @see faker.seed(): For generating reproducible values.
    *
    * @example
    * faker.seed(1234);
@@ -65,6 +66,8 @@ export class SimpleFaker {
    *
    * faker.defaultRefDate() // 2020-01-01T00:00:01Z
    * faker.defaultRefDate() // 2020-01-01T00:00:02Z
+   *
+   * @since 8.0.0
    */
   setDefaultRefDate(
     dateOrSource: string | Date | number | (() => Date) = () => new Date()
@@ -77,7 +80,7 @@ export class SimpleFaker {
   }
 
   /** @internal */
-  private readonly _mersenne: Mersenne = mersenne();
+  private readonly _randomizer: Randomizer;
 
   readonly datatype: DatatypeModule = new DatatypeModule(this);
   readonly date: SimpleDateModule = new SimpleDateModule(this);
@@ -89,9 +92,58 @@ export class SimpleFaker {
    * Creates a new instance of SimpleFaker.
    *
    * In nearly any case you should use the prebuilt `simpleFaker` instances instead of the constructor.
+   *
+   * @param options The options to use.
+   * @param options.randomizer The Randomizer to use.
+   * Specify this only if you want to use it to achieve a specific goal,
+   * such as sharing the same random generator with other instances/tools.
+   * Defaults to faker's Mersenne Twister based pseudo random number generator.
+   * @param options.seed The initial seed to use.
+   * The seed can be used to generate reproducible values.
+   * Refer to the `seed()` method for more information.
+   * Defaults to a random seed.
+   *
+   * @example
+   * import { SimpleFaker } from '@faker-js/faker';
+   * // const { SimpleFaker } = require('@faker-js/faker');
+   *
+   * // create a SimpleFaker without any locale data
+   * const customSimpleFaker = new SimpleFaker();
+   *
+   * customSimpleFaker.helpers.arrayElement(['red', 'green', 'blue']); // 'green'
+   * customSimpleFaker.number.int(10); // 4
+   *
+   * @since 8.1.0
    */
-  constructor() {
-    // This empty constructor just exists for VitePress docs
+  constructor(
+    options: {
+      /**
+       * The Randomizer to use.
+       * Specify this only if you want to use it to achieve a specific goal,
+       * such as sharing the same random generator with other instances/tools.
+       *
+       * @default generateMersenne53Randomizer()
+       */
+      randomizer?: Randomizer;
+
+      /**
+       * The initial seed to use.
+       * The seed can be used to generate reproducible values.
+       *
+       * Refer to the `seed()` method for more information.
+       *
+       * Defaults to a random seed.
+       */
+      seed?: number;
+    } = {}
+  ) {
+    const { randomizer, seed } = options;
+
+    if (randomizer != null && seed != null) {
+      randomizer.seed(seed);
+    }
+
+    this._randomizer = randomizer ?? generateMersenne53Randomizer(seed);
   }
 
   /**
@@ -112,7 +164,7 @@ export class SimpleFaker {
    * @returns The seed that was set.
    *
    * @see [Reproducible Results](https://fakerjs.dev/guide/usage.html#reproducible-results)
-   * @see faker.setDefaultRefDate() when generating relative dates.
+   * @see faker.setDefaultRefDate(): For generating reproducible relative dates.
    *
    * @example
    * // Consistent values for tests:
@@ -127,6 +179,8 @@ export class SimpleFaker {
    * // Random but reproducible tests:
    * // Simply log the seed, and if you need to reproduce it, insert the seed here
    * console.log('Running test with seed:', faker.seed());
+   *
+   * @since 6.0.0
    */
   seed(seed?: number): number;
   /**
@@ -147,7 +201,7 @@ export class SimpleFaker {
    * @returns The seed array that was set.
    *
    * @see [Reproducible Results](https://fakerjs.dev/guide/usage.html#reproducible-results)
-   * @see faker.setDefaultRefDate() when generating relative dates.
+   * @see faker.setDefaultRefDate(): For generating reproducible relative dates.
    *
    * @example
    * // Consistent values for tests:
@@ -162,6 +216,8 @@ export class SimpleFaker {
    * // Random but reproducible tests:
    * // Simply log the seed, and if you need to reproduce it, insert the seed here
    * console.log('Running test with seed:', faker.seed());
+   *
+   * @since 6.0.0
    */
   seed(seedArray: number[]): number[];
   /**
@@ -182,7 +238,7 @@ export class SimpleFaker {
    * @returns The seed that was set.
    *
    * @see [Reproducible Results](https://fakerjs.dev/guide/usage.html#reproducible-results)
-   * @see faker.setDefaultRefDate() when generating relative dates.
+   * @see faker.setDefaultRefDate(): For generating reproducible dates.
    *
    * @example
    * // Consistent values for tests (using a number):
@@ -206,12 +262,12 @@ export class SimpleFaker {
    * // Random but reproducible tests:
    * // Simply log the seed, and if you need to reproduce it, insert the seed here
    * console.log('Running test with seed:', faker.seed());
+   *
+   * @since 6.0.0
    */
   seed(seed?: number | number[]): number | number[];
-  seed(
-    seed: number | number[] = Math.ceil(Math.random() * Number.MAX_SAFE_INTEGER)
-  ): number | number[] {
-    this._mersenne.seed(seed);
+  seed(seed: number | number[] = randomSeed()): number | number[] {
+    this._randomizer.seed(seed);
 
     return seed;
   }

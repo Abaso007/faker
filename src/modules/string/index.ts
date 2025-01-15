@@ -1,17 +1,14 @@
-import type { SimpleFaker } from '../..';
 import { FakerError } from '../../errors/faker-error';
-import { bindThisToMemberFunctions } from '../../internal/bind-this-to-member-functions';
-import type { LiteralUnion } from '../../utils/types';
+import { CROCKFORDS_BASE32, dateToBase32 } from '../../internal/base32';
+import { toDate } from '../../internal/date';
+import { SimpleModuleBase } from '../../internal/module-base';
+import type { LiteralUnion } from '../../internal/types';
 
 export type Casing = 'upper' | 'lower' | 'mixed';
 
-const UPPER_CHARS: ReadonlyArray<string> = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split(
-  ''
-);
-const LOWER_CHARS: ReadonlyArray<string> = 'abcdefghijklmnopqrstuvwxyz'.split(
-  ''
-);
-const DIGIT_CHARS: ReadonlyArray<string> = '0123456789'.split('');
+const UPPER_CHARS: ReadonlyArray<string> = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'];
+const LOWER_CHARS: ReadonlyArray<string> = [...'abcdefghijklmnopqrstuvwxyz'];
+const DIGIT_CHARS: ReadonlyArray<string> = [...'0123456789'];
 
 export type LowerAlphaChar =
   | 'a'
@@ -84,8 +81,6 @@ export type NumericChar =
 export type AlphaChar = LowerAlphaChar | UpperAlphaChar;
 export type AlphaNumericChar = AlphaChar | NumericChar;
 
-const SAMPLE_MAX_LENGTH = 2 ** 20;
-
 /**
  * Module to generate string related entries.
  *
@@ -102,17 +97,13 @@ const SAMPLE_MAX_LENGTH = 2 ** 20;
  * - Emoji can be found at [`faker.internet.emoji()`](https://fakerjs.dev/api/internet.html#emoji).
  * - The [`faker.helpers`](https://fakerjs.dev/api/helpers.html) module includes a number of string related methods.
  */
-export class StringModule {
-  constructor(private readonly faker: SimpleFaker) {
-    bindThisToMemberFunctions(this);
-  }
-
+export class StringModule extends SimpleModuleBase {
   /**
    * Generates a string from the given characters.
    *
    * @param characters The characters to use for the string. Can be a string or an array of characters.
    * If it is an array, then each element is treated as a single character even if it is a string with multiple characters.
-   * @param length The length of the string to generate. Defaults to `1`.
+   * @param length The length of the string to generate either as a fixed length or as a length range. Defaults to `1`.
    * @param length.min The minimum length of the string to generate.
    * @param length.max The maximum length of the string to generate.
    *
@@ -145,7 +136,7 @@ export class StringModule {
     }
 
     if (typeof characters === 'string') {
-      characters = characters.split('');
+      characters = [...characters];
     }
 
     if (characters.length === 0) {
@@ -164,8 +155,8 @@ export class StringModule {
   /**
    * Generating a string consisting of letters in the English alphabet.
    *
-   * @param options Either the number of characters or an options instance.
-   * @param options.length The number or range of characters to generate. Defaults to `1`.
+   * @param options Either the length of the string to generate or the optional options object.
+   * @param options.length The length of the string to generate either as a fixed length or as a length range. Defaults to `1`.
    * @param options.casing The casing of the characters. Defaults to `'mixed'`.
    * @param options.exclude An array with characters which should be excluded in the generated string. Defaults to `[]`.
    *
@@ -184,7 +175,7 @@ export class StringModule {
       | number
       | {
           /**
-           * The number or range of characters to generate.
+           * The length of the string to generate either as a fixed length or as a length range.
            *
            * @default 1
            */
@@ -192,11 +183,11 @@ export class StringModule {
             | number
             | {
                 /**
-                 * The minimum number of characters to generate.
+                 * The minimum length of the string to generate.
                  */
                 min: number;
                 /**
-                 * The maximum number of characters to generate.
+                 * The maximum length of the string to generate.
                  */
                 max: number;
               };
@@ -229,21 +220,25 @@ export class StringModule {
     let { exclude = [] } = options;
 
     if (typeof exclude === 'string') {
-      exclude = exclude.split('');
+      exclude = [...exclude];
     }
 
     let charsArray: string[];
     switch (casing) {
-      case 'upper':
+      case 'upper': {
         charsArray = [...UPPER_CHARS];
         break;
-      case 'lower':
+      }
+
+      case 'lower': {
         charsArray = [...LOWER_CHARS];
         break;
-      case 'mixed':
-      default:
+      }
+
+      case 'mixed': {
         charsArray = [...LOWER_CHARS, ...UPPER_CHARS];
         break;
+      }
     }
 
     charsArray = charsArray.filter((elem) => !exclude.includes(elem));
@@ -254,8 +249,8 @@ export class StringModule {
   /**
    * Generating a string consisting of alpha characters and digits.
    *
-   * @param options Either the number of characters or an options instance.
-   * @param options.length The number or range of characters and digits to generate. Defaults to `1`.
+   * @param options Either the length of the string to generate or the optional options object.
+   * @param options.length The length of the string to generate either as a fixed length or as a length range. Defaults to `1`.
    * @param options.casing The casing of the characters. Defaults to `'mixed'`.
    * @param options.exclude An array of characters and digits which should be excluded in the generated string. Defaults to `[]`.
    *
@@ -274,7 +269,7 @@ export class StringModule {
       | number
       | {
           /**
-           * The number or range of characters and digits to generate.
+           * The length of the string to generate either as a fixed length or as a length range.
            *
            * @default 1
            */
@@ -282,11 +277,11 @@ export class StringModule {
             | number
             | {
                 /**
-                 * The minimum number of characters and digits to generate.
+                 * The minimum length of the string to generate.
                  */
                 min: number;
                 /**
-                 * The maximum number of characters and digits to generate.
+                 * The maximum length of the string to generate.
                  */
                 max: number;
               };
@@ -319,22 +314,26 @@ export class StringModule {
     let { exclude = [] } = options;
 
     if (typeof exclude === 'string') {
-      exclude = exclude.split('');
+      exclude = [...exclude];
     }
 
     let charsArray = [...DIGIT_CHARS];
 
     switch (casing) {
-      case 'upper':
+      case 'upper': {
         charsArray.push(...UPPER_CHARS);
         break;
-      case 'lower':
+      }
+
+      case 'lower': {
         charsArray.push(...LOWER_CHARS);
         break;
-      case 'mixed':
-      default:
+      }
+
+      case 'mixed': {
         charsArray.push(...LOWER_CHARS, ...UPPER_CHARS);
         break;
+      }
     }
 
     charsArray = charsArray.filter((elem) => !exclude.includes(elem));
@@ -346,10 +345,10 @@ export class StringModule {
    * Returns a [binary](https://en.wikipedia.org/wiki/Binary_number) string.
    *
    * @param options The optional options object.
-   * @param options.length The number or range of characters to generate after the prefix. Defaults to `1`.
+   * @param options.length The length of the string (excluding the prefix) to generate either as a fixed length or as a length range. Defaults to `1`.
    * @param options.prefix Prefix for the generated number. Defaults to `'0b'`.
    *
-   * @see faker.number.binary() If you would like to generate a `binary number` (within a range).
+   * @see faker.number.binary(): For generating a binary number (within a range).
    *
    * @example
    * faker.string.binary() // '0b1'
@@ -362,18 +361,28 @@ export class StringModule {
    */
   binary(
     options: {
+      /**
+       * The length of the string (excluding the prefix) to generate either as a fixed length or as a length range.
+       *
+       * @default 1
+       */
       length?:
         | number
         | {
             /**
-             * The minimum number of characters to generate.
+             * The minimum length of the string (excluding the prefix) to generate.
              */
             min: number;
             /**
-             * The maximum number of characters to generate.
+             * The maximum length of the string (excluding the prefix) to generate.
              */
             max: number;
           };
+      /**
+       * Prefix for the generated number.
+       *
+       * @default '0b'
+       */
       prefix?: string;
     } = {}
   ): string {
@@ -388,10 +397,10 @@ export class StringModule {
    * Returns an [octal](https://en.wikipedia.org/wiki/Octal) string.
    *
    * @param options The optional options object.
-   * @param options.length The number or range of characters to generate after the prefix. Defaults to `1`.
+   * @param options.length The length of the string (excluding the prefix) to generate either as a fixed length or as a length range. Defaults to `1`.
    * @param options.prefix Prefix for the generated number. Defaults to `'0o'`.
    *
-   * @see faker.number.octal() If you would like to generate an `octal number` (within a range).
+   * @see faker.number.octal(): For generating an octal number (within a range).
    *
    * @example
    * faker.string.octal() // '0o3'
@@ -404,18 +413,28 @@ export class StringModule {
    */
   octal(
     options: {
+      /**
+       * The length of the string (excluding the prefix) to generate either as a fixed length or as a length range.
+       *
+       * @default 1
+       */
       length?:
         | number
         | {
             /**
-             * The minimum number of characters to generate.
+             * The minimum length of the string (excluding the prefix) to generate.
              */
             min: number;
             /**
-             * The maximum number of characters to generate.
+             * The maximum length of the string (excluding the prefix) to generate.
              */
             max: number;
           };
+      /**
+       * Prefix for the generated number.
+       *
+       * @default '0o'
+       */
       prefix?: string;
     } = {}
   ): string {
@@ -433,7 +452,7 @@ export class StringModule {
    * Returns a [hexadecimal](https://en.wikipedia.org/wiki/Hexadecimal) string.
    *
    * @param options The optional options object.
-   * @param options.length The number or range of characters to generate after the prefix. Defaults to `1`.
+   * @param options.length The length of the string (excluding the prefix) to generate either as a fixed length or as a length range. Defaults to `1`.
    * @param options.casing Casing of the generated number. Defaults to `'mixed'`.
    * @param options.prefix Prefix for the generated number. Defaults to `'0x'`.
    *
@@ -453,7 +472,7 @@ export class StringModule {
   hexadecimal(
     options: {
       /**
-       * The number or range of characters to generate after the prefix.
+       * The length of the string (excluding the prefix) to generate either as a fixed length or as a length range.
        *
        * @default 1
        */
@@ -461,11 +480,11 @@ export class StringModule {
         | number
         | {
             /**
-             * The minimum number of characters to generate after the prefix.
+             * The minimum length of the string (excluding the prefix) to generate.
              */
             min: number;
             /**
-             * The maximum number of characters to generate after the prefix.
+             * The maximum length of the string (excluding the prefix) to generate.
              */
             max: number;
           };
@@ -529,12 +548,12 @@ export class StringModule {
   /**
    * Generates a given length string of digits.
    *
-   * @param options Either the number of characters or the options to use.
-   * @param options.length The number or range of digits to generate. Defaults to `1`.
+   * @param options Either the length of the string to generate or the optional options object.
+   * @param options.length The length of the string to generate either as a fixed length or as a length range. Defaults to `1`.
    * @param options.allowLeadingZeros Whether leading zeros are allowed or not. Defaults to `true`.
    * @param options.exclude An array of digits which should be excluded in the generated string. Defaults to `[]`.
    *
-   * @see faker.number.int() If you would like to generate a `number` (within a range).
+   * @see faker.number.int(): For generating a number (within a range).
    *
    * @example
    * faker.string.numeric() // '2'
@@ -551,7 +570,7 @@ export class StringModule {
       | number
       | {
           /**
-           * The number or range of digits to generate.
+           * The length of the string to generate either as a fixed length or as a length range.
            *
            * @default 1
            */
@@ -559,11 +578,11 @@ export class StringModule {
             | number
             | {
                 /**
-                 * The minimum number of digits to generate.
+                 * The minimum length of the string to generate.
                  */
                 min: number;
                 /**
-                 * The maximum number of digits to generate.
+                 * The maximum length of the string to generate.
                  */
                 max: number;
               };
@@ -596,7 +615,7 @@ export class StringModule {
     let { exclude = [] } = options;
 
     if (typeof exclude === 'string') {
-      exclude = exclude.split('');
+      exclude = [...exclude];
     }
 
     const allowedDigits = DIGIT_CHARS.filter(
@@ -630,9 +649,9 @@ export class StringModule {
   /**
    * Returns a string containing UTF-16 chars between 33 and 125 (`!` to `}`).
    *
-   * @param length Length of the generated string. Max length is `2^20`. Defaults to `10`.
-   * @param length.min The minimum number of characters to generate.
-   * @param length.max The maximum number of characters to generate.
+   * @param length The length of the string (excluding the prefix) to generate either as a fixed length or as a length range. Defaults to `10`.
+   * @param length.min The minimum length of the string to generate.
+   * @param length.max The maximum length of the string to generate.
    *
    * @example
    * faker.string.sample() // 'Zo!.:*e>wR'
@@ -646,19 +665,16 @@ export class StringModule {
       | number
       | {
           /**
-           * The minimum number of characters to generate.
+           * The minimum length of the string to generate.
            */
           min: number;
           /**
-           * The maximum number of characters to generate.
+           * The maximum length of the string to generate.
            */
           max: number;
         } = 10
   ): string {
     length = this.faker.helpers.rangeToNumber(length);
-    if (length >= SAMPLE_MAX_LENGTH) {
-      length = SAMPLE_MAX_LENGTH;
-    }
 
     const charCodeOption = {
       min: 33,
@@ -668,7 +684,7 @@ export class StringModule {
     let returnString = '';
 
     while (returnString.length < length) {
-      returnString += String.fromCharCode(
+      returnString += String.fromCodePoint(
         this.faker.number.int(charCodeOption)
       );
     }
@@ -686,14 +702,45 @@ export class StringModule {
    */
   uuid(): string {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
-      .replace(/x/g, () => this.faker.number.hex({ min: 0x0, max: 0xf }))
-      .replace(/y/g, () => this.faker.number.hex({ min: 0x8, max: 0xb }));
+      .replaceAll('x', () => this.faker.number.hex({ min: 0x0, max: 0xf }))
+      .replaceAll('y', () => this.faker.number.hex({ min: 0x8, max: 0xb }));
+  }
+
+  /**
+   * Returns a ULID ([Universally Unique Lexicographically Sortable Identifier](https://github.com/ulid/spec)).
+   *
+   * @param options The optional options object.
+   * @param options.refDate The timestamp to encode into the ULID.
+   * The encoded timestamp is represented by the first 10 characters of the result.
+   * Defaults to `faker.defaultRefDate()`.
+   *
+   * @example
+   * faker.string.ulid() // '01ARZ3NDEKTSV4RRFFQ69G5FAV'
+   * faker.string.ulid({ refDate: '2020-01-01T00:00:00.000Z' }) // '01DXF6DT00CX9QNNW7PNXQ3YR8'
+   *
+   * @since 9.1.0
+   */
+  ulid(
+    options: {
+      /**
+       * The date to use as reference point for the newly generated ULID encoded timestamp.
+       * The encoded timestamp is represented by the first 10 characters of the result.
+       *
+       * @default faker.defaultRefDate()
+       */
+      refDate?: string | Date | number;
+    } = {}
+  ): string {
+    const { refDate = this.faker.defaultRefDate() } = options;
+    const date = toDate(refDate);
+
+    return dateToBase32(date) + this.fromCharacters(CROCKFORDS_BASE32, 16);
   }
 
   /**
    * Generates a [Nano ID](https://github.com/ai/nanoid).
    *
-   * @param length Length of the generated string. Defaults to `21`.
+   * @param length The length of the string to generate either as a fixed length or as a length range. Defaults to `21`.
    * @param length.min The minimum length of the Nano ID to generate.
    * @param length.max The maximum length of the Nano ID to generate.
    *
@@ -747,13 +794,14 @@ export class StringModule {
 
   /**
    * Returns a string containing only special characters from the following list:
+   *
    * ```txt
    * ! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ ` { | } ~
    * ```
    *
-   * @param length Length of the generated string. Defaults to `1`.
-   * @param length.min The minimum number of special characters to generate.
-   * @param length.max The maximum number of special characters to generate.
+   * @param length The length of the string to generate either as a fixed length or as a length range. Defaults to `1`.
+   * @param length.min The minimum length of the string to generate.
+   * @param length.max The maximum length of the string to generate.
    *
    * @example
    * faker.string.symbol() // '$'
@@ -767,11 +815,11 @@ export class StringModule {
       | number
       | {
           /**
-           * The minimum number of special characters to generate.
+           * The minimum length of the string to generate.
            */
           min: number;
           /**
-           * The maximum number of special characters to generate.
+           * The maximum length of the string to generate.
            */
           max: number;
         } = 1

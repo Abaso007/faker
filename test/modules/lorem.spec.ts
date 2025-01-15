@@ -1,7 +1,7 @@
-import validator from 'validator';
+import { isSlug } from 'validator';
 import { describe, expect, it } from 'vitest';
 import { faker } from '../../src';
-import { seededTests } from './../support/seededRuns';
+import { seededTests } from '../support/seeded-runs';
 import { times } from './../support/times';
 
 const NON_SEEDED_BASED_RUN = 5;
@@ -43,7 +43,7 @@ describe('lorem', () => {
 
           expect(actual).toBeTruthy();
           expect(actual).toBeTypeOf('string');
-          expect(faker.definitions.lorem.words).toContain(actual);
+          expect(faker.definitions.lorem.word).toContain(actual);
         });
 
         // INFO @Shinigami92 2022-02-11: Seems there are only words with a max length of 14 characters
@@ -54,7 +54,7 @@ describe('lorem', () => {
 
             expect(actual).toBeTruthy();
             expect(actual).toBeTypeOf('string');
-            expect(faker.definitions.lorem.words).toContain(actual);
+            expect(faker.definitions.lorem.word).toContain(actual);
             expect(actual).toHaveLength(length);
           }
         );
@@ -72,7 +72,7 @@ describe('lorem', () => {
           expect(words).toHaveLength(3);
 
           for (const word of words) {
-            expect(faker.definitions.lorem.words).toContain(word);
+            expect(faker.definitions.lorem.word).toContain(word);
           }
         });
 
@@ -89,7 +89,7 @@ describe('lorem', () => {
             expect(words).toHaveLength(num);
 
             for (const word of words) {
-              expect(faker.definitions.lorem.words).toContain(word);
+              expect(faker.definitions.lorem.word).toContain(word);
             }
           }
         );
@@ -106,7 +106,7 @@ describe('lorem', () => {
           expect(words.length).toBeLessThanOrEqual(20);
 
           for (const word of words) {
-            expect(faker.definitions.lorem.words).toContain(word);
+            expect(faker.definitions.lorem.word).toContain(word);
           }
         });
       });
@@ -117,7 +117,7 @@ describe('lorem', () => {
 
           expect(actual).toBeTruthy();
           expect(actual).toBeTypeOf('string');
-          expect(actual[actual.length - 1]).toBe('.');
+          expect(actual.at(-1)).toBe('.');
         });
 
         it.each(times(25))(
@@ -127,7 +127,7 @@ describe('lorem', () => {
 
             expect(actual).toBeTruthy();
             expect(actual).toBeTypeOf('string');
-            expect(actual[actual.length - 1]).toBe('.');
+            expect(actual.at(-1)).toBe('.');
 
             const words = actual.split(' ');
 
@@ -154,7 +154,7 @@ describe('lorem', () => {
 
           expect(actual).toBeTruthy();
           expect(actual).toBeTypeOf('string');
-          expect(actual).toSatisfy(validator.isSlug);
+          expect(actual).toSatisfy(isSlug);
         });
 
         it.each(times(25))(
@@ -170,7 +170,7 @@ describe('lorem', () => {
             expect(words).toHaveLength(wordCount);
 
             if (wordCount > 1) {
-              expect(actual).toSatisfy(validator.isSlug);
+              expect(actual).toSatisfy(isSlug);
             }
           }
         );
@@ -182,7 +182,7 @@ describe('lorem', () => {
 
           expect(actual).toBeTruthy();
           expect(actual).toBeTypeOf('string');
-          expect(actual[actual.length - 1]).toBe('.');
+          expect(actual.at(-1)).toBe('.');
         });
 
         it.each(times(10))('should return %i sentences', (sentenceCount) => {
@@ -190,7 +190,7 @@ describe('lorem', () => {
 
           expect(actual).toBeTruthy();
           expect(actual).toBeTypeOf('string');
-          expect(actual[actual.length - 1]).toBe('.');
+          expect(actual.at(-1)).toBe('.');
 
           const sentences = actual.split('. ');
 
@@ -205,14 +205,14 @@ describe('lorem', () => {
 
             expect(actual).toBeTruthy();
             expect(actual).toBeTypeOf('string');
-            expect(actual[actual.length - 1]).toBe('.');
+            expect(actual.at(-1)).toBe('.');
 
             const sentences = actual.split(separator);
 
             expect(sentences).toHaveLength(sentenceCount);
 
             for (const sentence of sentences) {
-              expect(sentence[sentence.length - 1]).toBe('.');
+              expect(sentence.at(-1)).toBe('.');
             }
           }
         );
@@ -236,7 +236,7 @@ describe('lorem', () => {
 
           expect(actual).toBeTruthy();
           expect(actual).toBeTypeOf('string');
-          expect(actual[actual.length - 1]).toBe('.');
+          expect(actual.at(-1)).toBe('.');
         });
 
         it.each(times(10))(
@@ -246,7 +246,7 @@ describe('lorem', () => {
 
             expect(actual).toBeTruthy();
             expect(actual).toBeTypeOf('string');
-            expect(actual[actual.length - 1]).toBe('.');
+            expect(actual.at(-1)).toBe('.');
 
             const sentences = actual.split('. ');
 
@@ -274,7 +274,7 @@ describe('lorem', () => {
 
           expect(actual).toBeTruthy();
           expect(actual).toBeTypeOf('string');
-          expect(actual[actual.length - 1]).toBe('.');
+          expect(actual.at(-1)).toBe('.');
         });
 
         it.each(times(5))('should return %i paragraphs', (paragraphCount) => {
@@ -282,7 +282,7 @@ describe('lorem', () => {
 
           expect(actual).toBeTruthy();
           expect(actual).toBeTypeOf('string');
-          expect(actual[actual.length - 1]).toBe('.');
+          expect(actual.at(-1)).toBe('.');
 
           const paragraphs = actual.split('\n');
 
@@ -297,7 +297,7 @@ describe('lorem', () => {
 
             expect(actual).toBeTruthy();
             expect(actual).toBeTypeOf('string');
-            expect(actual[actual.length - 1]).toBe('.');
+            expect(actual.at(-1)).toBe('.');
 
             const paragraphs = actual.split(separator);
 

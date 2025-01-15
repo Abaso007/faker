@@ -1,5 +1,4 @@
-import type { Faker } from '../../faker';
-import { bindThisToMemberFunctions } from '../../internal/bind-this-to-member-functions';
+import { ModuleBase } from '../../internal/module-base';
 
 /**
  * Color space names supported by CSS.
@@ -48,27 +47,35 @@ export type Casing = 'lower' | 'upper' | 'mixed';
  *
  * @param hexColor Hex color string to be formatted.
  * @param options Options object.
- * @param options.prefix Prefix of the generated hex color. Defaults to `'0x'`.
- * @param options.casing Letter type case of the generated hex color. Defaults to `'mixed'`.
+ * @param options.prefix Prefix of the generated hex color.
+ * @param options.casing Letter type case of the generated hex color.
  */
 function formatHexColor(
   hexColor: string,
-  options?: {
-    prefix?: string;
-    casing?: Casing;
+  options: {
+    prefix: string;
+    casing: Casing;
   }
 ): string {
-  switch (options?.casing) {
-    case 'upper':
+  const { prefix, casing } = options;
+
+  switch (casing) {
+    case 'upper': {
       hexColor = hexColor.toUpperCase();
       break;
-    case 'lower':
+    }
+
+    case 'lower': {
       hexColor = hexColor.toLowerCase();
       break;
+    }
+
+    case 'mixed':
+    // Do nothing
   }
 
-  if (options?.prefix) {
-    hexColor = options.prefix + hexColor;
+  if (prefix) {
+    hexColor = prefix + hexColor;
   }
 
   return hexColor;
@@ -86,12 +93,21 @@ function toBinary(values: number[]): string {
       const buffer = new ArrayBuffer(4);
       new DataView(buffer).setFloat32(0, value);
       const bytes = new Uint8Array(buffer);
-      return toBinary(Array.from(bytes)).split(' ').join('');
+      return toBinary([...bytes]).replaceAll(' ', '');
     }
 
     return (value >>> 0).toString(2).padStart(8, '0');
   });
   return binary.join(' ');
+}
+
+/**
+ * Converts the given value to a percentage (`round(value * 100)`).
+ *
+ * @param value The value to convert to a percentage.
+ */
+function toPercentage(value: number): number {
+  return Math.round(value * 100);
 }
 
 /**
@@ -106,35 +122,50 @@ function toCSS(
   cssFunction: CssFunctionType = 'rgb',
   space: CssSpaceType = 'sRGB'
 ): string {
-  const percentage = (value: number) => Math.round(value * 100);
   switch (cssFunction) {
-    case 'rgba':
+    case 'rgba': {
       return `rgba(${values[0]}, ${values[1]}, ${values[2]}, ${values[3]})`;
-    case 'color':
+    }
+
+    case 'color': {
       return `color(${space} ${values[0]} ${values[1]} ${values[2]})`;
-    case 'cmyk':
-      return `cmyk(${percentage(values[0])}%, ${percentage(
+    }
+
+    case 'cmyk': {
+      return `cmyk(${toPercentage(values[0])}%, ${toPercentage(
         values[1]
-      )}%, ${percentage(values[2])}%, ${percentage(values[3])}%)`;
-    case 'hsl':
-      return `hsl(${values[0]}deg ${percentage(values[1])}% ${percentage(
+      )}%, ${toPercentage(values[2])}%, ${toPercentage(values[3])}%)`;
+    }
+
+    case 'hsl': {
+      return `hsl(${values[0]}deg ${toPercentage(values[1])}% ${toPercentage(
         values[2]
       )}%)`;
-    case 'hsla':
-      return `hsl(${values[0]}deg ${percentage(values[1])}% ${percentage(
+    }
+
+    case 'hsla': {
+      return `hsl(${values[0]}deg ${toPercentage(values[1])}% ${toPercentage(
         values[2]
-      )}% / ${percentage(values[3])})`;
-    case 'hwb':
-      return `hwb(${values[0]} ${percentage(values[1])}% ${percentage(
+      )}% / ${toPercentage(values[3])})`;
+    }
+
+    case 'hwb': {
+      return `hwb(${values[0]} ${toPercentage(values[1])}% ${toPercentage(
         values[2]
       )}%)`;
-    case 'lab':
-      return `lab(${percentage(values[0])}% ${values[1]} ${values[2]})`;
-    case 'lch':
-      return `lch(${percentage(values[0])}% ${values[1]} ${values[2]})`;
-    case 'rgb':
-    default:
+    }
+
+    case 'lab': {
+      return `lab(${toPercentage(values[0])}% ${values[1]} ${values[2]})`;
+    }
+
+    case 'lch': {
+      return `lch(${toPercentage(values[0])}% ${values[1]} ${values[2]})`;
+    }
+
+    case 'rgb': {
       return `rgb(${values[0]}, ${values[1]}, ${values[2]})`;
+    }
   }
 }
 
@@ -153,12 +184,17 @@ function toColorFormat(
   space: CssSpaceType = 'sRGB'
 ): string | number[] {
   switch (format) {
-    case 'css':
+    case 'css': {
       return toCSS(values, cssFunction, space);
-    case 'binary':
+    }
+
+    case 'binary': {
       return toBinary(values);
-    default:
+    }
+
+    case 'decimal': {
       return values;
+    }
   }
 }
 
@@ -171,11 +207,7 @@ function toColorFormat(
  *
  * For a hex color like `#ff0000` used in HTML/CSS, use [`rgb()`](https://fakerjs.dev/api/color.html#rgb). There are also methods for other color formats such as [`hsl()`](https://fakerjs.dev/api/color.html#hsl), [`cmyk()`](https://fakerjs.dev/api/color.html#cmyk), [`hwb()`](https://fakerjs.dev/api/color.html#hwb), [`lab()`](https://fakerjs.dev/api/color.html#lab), and [`lch()`](https://fakerjs.dev/api/color.html#lch).
  */
-export class ColorModule {
-  constructor(private readonly faker: Faker) {
-    bindThisToMemberFunctions(this);
-  }
-
+export class ColorModule extends ModuleBase {
   /**
    * Returns a random human-readable color name.
    *
@@ -362,19 +394,20 @@ export class ColorModule {
      */
     includeAlpha?: boolean;
   }): string | number[];
-  rgb(options?: {
-    prefix?: string;
-    casing?: Casing;
-    format?: 'hex' | ColorFormat;
-    includeAlpha?: boolean;
-  }): string | number[] {
+  rgb(
+    options: {
+      prefix?: string;
+      casing?: Casing;
+      format?: 'hex' | ColorFormat;
+      includeAlpha?: boolean;
+    } = {}
+  ): string | number[] {
     const {
       format = 'hex',
       includeAlpha = false,
       prefix = '#',
       casing = 'lower',
-    } = options || {};
-    options = { format, includeAlpha, prefix, casing };
+    } = options;
     let color: string | number[];
     let cssFunction: CssFunctionType = 'rgb';
     if (format === 'hex') {
@@ -382,13 +415,13 @@ export class ColorModule {
         length: includeAlpha ? 8 : 6,
         prefix: '',
       });
-      color = formatHexColor(color, options);
+      color = formatHexColor(color, { prefix, casing });
       return color;
     }
 
     color = Array.from({ length: 3 }, () => this.faker.number.int(255));
     if (includeAlpha) {
-      color.push(this.faker.number.float({ precision: 0.01 }));
+      color.push(this.faker.number.float({ multipleOf: 0.01 }));
       cssFunction = 'rgba';
     }
 
@@ -412,7 +445,7 @@ export class ColorModule {
    *
    * @example
    * faker.color.cmyk() // [0.31, 0.52, 0.32, 0.43]
-   * faker.color.cmyk({ format: 'css' }) // cmyk(100%, 0%, 0%, 0%)
+   * faker.color.cmyk({ format: 'css' }) // 'cmyk(35%, 39%, 68%, 60%)'
    * faker.color.cmyk({ format: 'binary' }) // (8-32 bits) x 4
    *
    * @since 7.0.0
@@ -454,7 +487,7 @@ export class ColorModule {
    * @example
    * faker.color.cmyk() // [0.31, 0.52, 0.32, 0.43]
    * faker.color.cmyk({ format: 'decimal' }) // [0.31, 0.52, 0.32, 0.43]
-   * faker.color.cmyk({ format: 'css' }) // cmyk(100%, 0%, 0%, 0%)
+   * faker.color.cmyk({ format: 'css' }) // 'cmyk(35%, 39%, 68%, 60%)'
    * faker.color.cmyk({ format: 'binary' }) // (8-32 bits) x 4
    *
    * @since 7.0.0
@@ -467,11 +500,12 @@ export class ColorModule {
      */
     format?: ColorFormat;
   }): string | number[];
-  cmyk(options?: { format?: ColorFormat }): string | number[] {
+  cmyk(options: { format?: ColorFormat } = {}): string | number[] {
+    const { format = 'decimal' } = options;
     const color: string | number[] = Array.from({ length: 4 }, () =>
-      this.faker.number.float({ precision: 0.01 })
+      this.faker.number.float({ multipleOf: 0.01 })
     );
-    return toColorFormat(color, options?.format || 'decimal', 'cmyk');
+    return toColorFormat(color, format, 'cmyk');
   }
 
   /**
@@ -573,20 +607,19 @@ export class ColorModule {
      */
     includeAlpha?: boolean;
   }): string | number[];
-  hsl(options?: {
-    format?: ColorFormat;
-    includeAlpha?: boolean;
-  }): string | number[] {
+  hsl(
+    options: {
+      format?: ColorFormat;
+      includeAlpha?: boolean;
+    } = {}
+  ): string | number[] {
+    const { format = 'decimal', includeAlpha = false } = options;
     const hsl: number[] = [this.faker.number.int(360)];
     for (let i = 0; i < (options?.includeAlpha ? 3 : 2); i++) {
-      hsl.push(this.faker.number.float({ precision: 0.01 }));
+      hsl.push(this.faker.number.float({ multipleOf: 0.01 }));
     }
 
-    return toColorFormat(
-      hsl,
-      options?.format || 'decimal',
-      options?.includeAlpha ? 'hsla' : 'hsl'
-    );
+    return toColorFormat(hsl, format, includeAlpha ? 'hsla' : 'hsl');
   }
 
   /**
@@ -606,7 +639,7 @@ export class ColorModule {
    *
    * @example
    * faker.color.hwb() // [201, 0.21, 0.31]
-   * faker.color.hwb({ format: 'css' }) // hwb(194 0% 0%)
+   * faker.color.hwb({ format: 'css' }) // 'hwb(354 72% 41%)'
    * faker.color.hwb({ format: 'binary' }) // (8-32 bits x 3)
    *
    * @since 7.0.0
@@ -648,7 +681,7 @@ export class ColorModule {
    * @example
    * faker.color.hwb() // [201, 0.21, 0.31]
    * faker.color.hwb({ format: 'decimal' }) // [201, 0.21, 0.31]
-   * faker.color.hwb({ format: 'css' }) // hwb(194 0% 0%)
+   * faker.color.hwb({ format: 'css' }) // 'hwb(354 72% 41%)'
    * faker.color.hwb({ format: 'binary' }) // (8-32 bits x 3)
    *
    * @since 7.0.0
@@ -670,25 +703,28 @@ export class ColorModule {
    * @example
    * faker.color.hwb() // [201, 0.21, 0.31]
    * faker.color.hwb({ format: 'decimal' }) // [201, 0.21, 0.31]
-   * faker.color.hwb({ format: 'css' }) // hwb(194 0% 0%)
+   * faker.color.hwb({ format: 'css' }) // 'hwb(354 72% 41%)'
    * faker.color.hwb({ format: 'binary' }) // (8-32 bits x 3)
    *
    * @since 7.0.0
    */
-  hwb(options?: {
-    /**
-     * Format of generated RGB color.
-     *
-     * @default 'decimal'
-     */
-    format?: ColorFormat;
-  }): string | number[] {
+  hwb(
+    options: {
+      /**
+       * Format of generated RGB color.
+       *
+       * @default 'decimal'
+       */
+      format?: ColorFormat;
+    } = {}
+  ): string | number[] {
+    const { format = 'decimal' } = options;
     const hsl: number[] = [this.faker.number.int(360)];
     for (let i = 0; i < 2; i++) {
-      hsl.push(this.faker.number.float({ precision: 0.01 }));
+      hsl.push(this.faker.number.float({ multipleOf: 0.01 }));
     }
 
-    return toColorFormat(hsl, options?.format || 'decimal', 'hwb');
+    return toColorFormat(hsl, format, 'hwb');
   }
 
   /**
@@ -708,7 +744,7 @@ export class ColorModule {
    *
    * @example
    * faker.color.lab() // [0.832133, -80.3245, 100.1234]
-   * faker.color.lab({ format: 'css' }) // lab(29.2345% 39.3825 20.0664)
+   * faker.color.lab({ format: 'css' }) // 'lab(29.2345% 39.3825 20.0664)'
    * faker.color.lab({ format: 'binary' }) // (8-32 bits x 3)
    *
    * @since 7.0.0
@@ -750,7 +786,7 @@ export class ColorModule {
    * @example
    * faker.color.lab() // [0.832133, -80.3245, 100.1234]
    * faker.color.lab({ format: 'decimal' }) // [0.856773, -80.2345, 100.2341]
-   * faker.color.lab({ format: 'css' }) // lab(29.2345% 39.3825 20.0664)
+   * faker.color.lab({ format: 'css' }) // 'lab(29.2345% 39.3825 20.0664)'
    * faker.color.lab({ format: 'binary' }) // (8-32 bits x 3)
    *
    * @since 7.0.0
@@ -763,15 +799,16 @@ export class ColorModule {
      */
     format?: ColorFormat;
   }): string | number[];
-  lab(options?: { format?: ColorFormat }): string | number[] {
-    const lab = [this.faker.number.float({ precision: 0.000001 })];
+  lab(options: { format?: ColorFormat } = {}): string | number[] {
+    const { format = 'decimal' } = options;
+    const lab = [this.faker.number.float({ multipleOf: 0.000001 })];
     for (let i = 0; i < 2; i++) {
       lab.push(
-        this.faker.number.float({ min: -100, max: 100, precision: 0.0001 })
+        this.faker.number.float({ min: -100, max: 100, multipleOf: 0.0001 })
       );
     }
 
-    return toColorFormat(lab, options?.format || 'decimal', 'lab');
+    return toColorFormat(lab, format, 'lab');
   }
 
   /**
@@ -797,7 +834,7 @@ export class ColorModule {
    *
    * @example
    * faker.color.lch() // [0.522345, 72.2, 56.2]
-   * faker.color.lch({ format: 'css' }) // lch(52.2345% 72.2 56.2)
+   * faker.color.lch({ format: 'css' }) // 'lch(52.2345% 72.2 56.2)'
    * faker.color.lch({ format: 'binary' }) // (8-32 bits x 3)
    *
    * @since 7.0.0
@@ -845,7 +882,7 @@ export class ColorModule {
    * @example
    * faker.color.lch() // [0.522345, 72.2, 56.2]
    * faker.color.lch({ format: 'decimal' }) // [0.522345, 72.2, 56.2]
-   * faker.color.lch({ format: 'css' }) // lch(52.2345% 72.2 56.2)
+   * faker.color.lch({ format: 'css' }) // 'lch(52.2345% 72.2 56.2)'
    * faker.color.lch({ format: 'binary' }) // (8-32 bits x 3)
    *
    * @since 7.0.0
@@ -858,13 +895,14 @@ export class ColorModule {
      */
     format?: ColorFormat;
   }): string | number[];
-  lch(options?: { format?: ColorFormat }): string | number[] {
-    const lch = [this.faker.number.float({ precision: 0.000001 })];
+  lch(options: { format?: ColorFormat } = {}): string | number[] {
+    const { format = 'decimal' } = options;
+    const lch = [this.faker.number.float({ multipleOf: 0.000001 })];
     for (let i = 0; i < 2; i++) {
-      lch.push(this.faker.number.float({ max: 230, precision: 0.1 }));
+      lch.push(this.faker.number.float({ max: 230, multipleOf: 0.1 }));
     }
 
-    return toColorFormat(lch, options?.format || 'decimal', 'lch');
+    return toColorFormat(lch, format, 'lch');
   }
 
   /**
@@ -960,22 +998,17 @@ export class ColorModule {
      */
     space?: CssSpaceType;
   }): string | number[];
-  colorByCSSColorSpace(options?: {
-    format?: ColorFormat;
-    space?: CssSpaceType;
-  }): string | number[] {
-    if (options?.format === 'css' && !options?.space) {
-      options = { ...options, space: 'sRGB' };
-    }
+  colorByCSSColorSpace(
+    options: {
+      format?: ColorFormat;
+      space?: CssSpaceType;
+    } = {}
+  ): string | number[] {
+    const { format = 'decimal', space = 'sRGB' } = options;
 
     const color = Array.from({ length: 3 }, () =>
-      this.faker.number.float({ precision: 0.0001 })
+      this.faker.number.float({ multipleOf: 0.0001 })
     );
-    return toColorFormat(
-      color,
-      options?.format || 'decimal',
-      'color',
-      options?.space
-    );
+    return toColorFormat(color, format, 'color', space);
   }
 }

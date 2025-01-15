@@ -26,44 +26,66 @@ const randomEmail = faker.internet.email(); // Kassandra.Haley@erich.biz
 
 :::
 
-For more information about changing and customizing the locales, please refer to our [Localization Guide](localization).
+For more information on selecting and customizing a locale, please refer to our [Localization Guide](localization).
 
 ## Browser
 
+If you want to try it yourself, you can open your browser console via `Ctrl + Shift + J` / `F12`.
+
+On our website, you can load faker into the browser console
+
+- by using `await enableFaker()`
+- or using the following code:
+
+```js
+const { faker } = await import('https://esm.sh/@faker-js/faker');
+
+const randomName = faker.person.fullName(); // Amber Keebler
+const randomEmail = faker.internet.email(); // Norma13@hotmail.com
+```
+
+Some websites may have protections against downloading external code, dev servers usually work fine.
+As an alternative, you can create a simple html file and open it with your browser:
+
 ```html
 <script type="module">
-  import { faker } from 'https://cdn.skypack.dev/@faker-js/faker';
+  import { faker } from 'https://esm.sh/@faker-js/faker';
 
   // Caitlyn Kerluke
   const randomName = faker.person.fullName();
 
   // Rusty@arne.info
   const randomEmail = faker.internet.email();
+
+  document.getElementById('name').value = randomName;
+  document.getElementById('email').value = randomEmail;
 </script>
+
+<input id="name" />
+<input id="email" />
 ```
 
 ::: info Note
-Using the browser is great for experimenting 👍. However, due to all of the strings Faker uses to generate fake data, **Faker is a large package**. It's `> 5 MiB` minified. **Please avoid deploying the full Faker in your web app.**
+Using the browser is great for experimenting 👍. However, due to all of the strings Faker uses to generate fake data, **Faker is a large package**. It's `> 5 MiB` minified. **Please avoid deploying the full Faker package in your web app.**
 :::
 
 ## CDN/Deno
 
 ```js
-import { faker } from 'https://cdn.skypack.dev/@faker-js/faker';
+import { faker } from 'https://esm.sh/@faker-js/faker';
 
 const randomName = faker.person.fullName(); // Willie Bahringer
 const randomEmail = faker.internet.email(); // Tomasa_Ferry14@hotmail.com
 ```
 
 ::: info Note
-It is highly recommended to use version tags when importing libraries in Deno, e.g: `import { faker } from "https://cdn.skypack.dev/@faker-js/faker@v7.4.0"`. Add `?dts` to import with type definitions: `import { faker } from "https://cdn.skypack.dev/@faker-js/faker@v7.4.0?dts"`.
+It is highly recommended to use version tags when importing libraries in Deno, e.g: `import { faker } from "https://esm.sh/@faker-js/faker@v9.4.0"`.
 :::
 
 ### Alternative CDN links
 
 **esm:**
 
-- https://esm.sh/@faker-js/faker
 - https://cdn.jsdelivr.net/npm/@faker-js/faker/+esm
 
 **cjs:**
@@ -72,15 +94,16 @@ It is highly recommended to use version tags when importing libraries in Deno, e
 
 ## TypeScript Support
 
-Faker supports TypeScript out of the box, so you don't have to install any extra packages.
+We assume that you use TypeScript (strict mode).
+You can use Faker without it, but we don't have dedicated error messages for wrong parameter types.
 
 In order to have Faker working properly, you need to check if these `compilerOptions` are set correctly in your `tsconfig` file:
 
 ```json
 {
   "compilerOptions": {
-    "esModuleInterop": true,
-    "moduleResolution": "Node"
+    "moduleResolution": "Bundler", // "Node10", "Node16" or "NodeNext"
+    "strict": true // Optional, but recommended
   }
 }
 ```
@@ -168,7 +191,7 @@ interface User {
 }
 ```
 
-As you can see, your `User` model probably looks completely different from the one you have in your codebase.
+As you can see, our `User` model probably looks completely different from the one you have in your codebase.
 One thing to keep an eye on is the `subscriptionTier` property, as it is not simply a string, but only one of the strings defined in the `SubscriptionTier` type (`'free'` or `'basic'` or `'business'`).
 Also, in a real scenario, your model should not depend on a type of a third party library (`SexType` in this case).
 
@@ -234,45 +257,51 @@ Here, we could also pass in the `sex` value as argument, but in our use-case the
 By doing this first, we are able to pass both names into the `email` generation function.
 This allows the value to be more reasonable based on the provided arguments.
 
-But we can take this even another step further.
-Opposite to the `_id` property that uses an `uuid` implementation, which is unique by design, the `email` property potentially isn't.
-But, in most use-cases, this would be desirable.
+Unlike the `_id` property that uses an `uuid` implementation, which has a low chance of duplicates, the `email` function is more likely to produce duplicates, especially if the call arguments are similar. We have a dedicated guide page on generating [unique values](unique).
 
-Faker has your back, with another helper method:
+The example above demonstrates how to generate complex objects.
+To gain more control over the values of specific properties, you can introduce `overwrites`, `options` or similar parameters:
 
-```ts {7-10}
+```ts {3,17}
 import { faker } from '@faker-js/faker';
 
-function createRandomUser(): User {
-  const sex = faker.person.sexType();
-  const firstName = faker.person.firstName(sex);
-  const lastName = faker.person.lastName();
-  const email = faker.helpers.unique(faker.internet.email, [
-    firstName,
-    lastName,
-  ]);
+function createRandomUser(overwrites: Partial<User> = {}): User {
+  const {
+    _id = faker.string.uuid(),
+    avatar = faker.image.avatar(),
+    birthday = faker.date.birthdate(),
+    sex = faker.person.sexType(),
+    firstName = faker.person.firstName(sex),
+    lastName = faker.person.lastName(),
+    email = faker.internet.email({ firstName, lastName }),
+    subscriptionTier = faker.helpers.arrayElement([
+      'free',
+      'basic',
+      'business',
+    ]),
+  } = overwrites;
 
   return {
-    _id: faker.string.uuid(),
-    avatar: faker.image.avatar(),
-    birthday: faker.date.birthdate(),
+    _id,
+    avatar,
+    birthday,
     email,
     firstName,
     lastName,
     sex,
-    subscriptionTier: faker.helpers.arrayElement(['free', 'basic', 'business']),
+    subscriptionTier,
   };
 }
 
 const user = createRandomUser();
+const userToReject = createRandomUser({ birthday: new Date('2124-10-20') });
 ```
 
-By wrapping Faker's `email` function with the [`unique`](../api/helpers.md#unique) helper function, we ensure that the return value of `email` is always unique.
+A potential `options` parameter could be used to:
 
-::: warning
-The `faker.helpers.unique` is targeted to be removed from Faker in the future.  
-Please have a look at the issue [#1785](https://github.com/faker-js/faker/issues/1785).  
-We will update these docs once a replacement is available.
-:::
+- control which optional properties are included,
+- control how nested elements and arrays are merged or replaced,
+- or specify the number of items to generate for nested lists.
 
-Congratulations, you should now be able to create any complex object you desire. Happy faking 🥳.
+Congratulations, you should now be able to create any complex object you desire.
+Happy faking 🥳.

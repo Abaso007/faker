@@ -1,11 +1,13 @@
 import type { AirlineDefinition } from './airline';
 import type { AnimalDefinition } from './animal';
+import type { BookDefinition } from './book';
 import type { ColorDefinition } from './color';
 import type { CommerceDefinition } from './commerce';
 import type { CompanyDefinition } from './company';
 import type { DatabaseDefinition } from './database';
 import type { DateDefinition } from './date';
 import type { FinanceDefinition } from './finance';
+import type { FoodDefinition } from './food';
 import type { HackerDefinition } from './hacker';
 import type { InternetDefinition } from './internet';
 import type { LocationDefinition } from './location';
@@ -33,12 +35,14 @@ export type LocaleDefinition = {
   metadata?: MetadataDefinition;
   airline?: AirlineDefinition;
   animal?: AnimalDefinition;
+  book?: BookDefinition;
   color?: ColorDefinition;
   commerce?: CommerceDefinition;
   company?: CompanyDefinition;
   database?: DatabaseDefinition;
   date?: DateDefinition;
   finance?: FinanceDefinition;
+  food?: FoodDefinition;
   hacker?: HackerDefinition;
   internet?: InternetDefinition;
   location?: LocationDefinition;
@@ -50,4 +54,4 @@ export type LocaleDefinition = {
   system?: SystemDefinition;
   vehicle?: VehicleDefinition;
   word?: WordDefinition;
-} & Record<string, Record<string, unknown> | undefined>;
+} & Record<string, Record<string, unknown>>;

@@ -1,7 +1,7 @@
-import validator from 'validator';
+import { isISBN } from 'validator';
 import { describe, expect, it } from 'vitest';
 import { faker } from '../../src';
-import { seededTests } from './../support/seededRuns';
+import { seededTests } from '../support/seeded-runs';
 import { times } from './../support/times';
 
 const NON_SEEDED_BASED_RUN = 5;
@@ -19,14 +19,10 @@ describe('commerce', () => {
 
     t.describe('price', (t) => {
       t.it('noArgs')
-        .it('with min', 50)
-        .it('with max', undefined, 100)
-        .it('with min and max', 50, 100)
-        .it('with min and max and decimals', 50, 100, 4)
-        .it('with min and max and decimals and symbol', 50, 100, 4, '$')
         .it('with min option', { min: 42 })
         .it('with max option', { max: 1337 })
         .it('with min and max option', { min: 50, max: 100 })
+        .it('with float min and float max option', { min: 1, max: 1.1 })
         .it('with min and max and decimals option', {
           min: 50,
           max: 100,
@@ -110,28 +106,56 @@ describe('commerce', () => {
           expect(
             amount,
             'The expected match should not include a currency symbol'
-          ).toMatch(/^[0-9\.]+$/);
+          ).toMatch(/^[0-9.]+$/);
         });
 
         it('should handle negative amounts, but return 0', () => {
-          const amount = faker.commerce.price(-200, -1);
+          const amount = faker.commerce.price({ min: -200, max: -1 });
 
           expect(amount).toBeTruthy();
           expect(amount, 'the amount should equal 0').toBe('0');
         });
 
         it('should handle argument dec', () => {
-          const price = faker.commerce.price(100, 100, 1);
+          const price = faker.commerce.price({ min: 100, max: 100, dec: 1 });
 
           expect(price).toBeTruthy();
-          expect(price, 'the price should be equal 100.0').toBe('100.0');
+          expect(price, 'the price should equal 100.0').toBe('100.0');
         });
 
         it('should handle argument dec = 0', () => {
-          const price = faker.commerce.price(100, 100, 0);
+          const price = faker.commerce.price({ min: 100, max: 100, dec: 0 });
 
           expect(price).toBeTruthy();
-          expect(price, 'the price should be equal 100').toBe('100');
+          expect(price, 'the price should equal 100').toBe('100');
+        });
+
+        it('should return decimal values between min and max', () => {
+          const result = faker.helpers.multiple(
+            () => faker.commerce.price({ min: 1, max: 1.1, dec: 2 }),
+            { count: 50 }
+          );
+
+          for (const price of result) {
+            const parsedPrice = Number.parseFloat(price);
+
+            expect(parsedPrice).toBeLessThanOrEqual(1.1);
+            expect(parsedPrice).toBeGreaterThanOrEqual(1);
+          }
+        });
+
+        it('should return values with three decimal places between min and max', () => {
+          const result = faker.helpers.multiple(
+            () => faker.commerce.price({ min: 0.001, max: 0.009, dec: 3 }),
+            { count: 50 }
+          );
+
+          for (const price of result) {
+            const parsedPrice = Number.parseFloat(price);
+
+            expect(parsedPrice).toBeLessThanOrEqual(0.009);
+            expect(parsedPrice).toBeGreaterThanOrEqual(0.001);
+          }
         });
       });
 
@@ -163,11 +187,10 @@ describe('commerce', () => {
       });
 
       describe(`productDescription()`, () => {
-        it('should return random value from product description array', () => {
+        it('should return a product description string', () => {
           const actual = faker.commerce.productDescription();
-          expect(faker.definitions.commerce.product_description).toContain(
-            actual
-          );
+          expect(actual).toBeTruthy();
+          expect(actual).toBeTypeOf('string');
         });
       });
 
@@ -181,7 +204,7 @@ describe('commerce', () => {
             isbn,
             'The expected match should be ISBN-13 with hyphens'
           ).toMatch(/^978-[01]-[\d-]{9}-\d$/);
-          expect(isbn).toSatisfy((isbn: string) => validator.isISBN(isbn, 13));
+          expect(isbn).toSatisfy((isbn: string) => isISBN(isbn, 13));
         });
 
         it('should return ISBN-10 with hyphen separators when passing variant 10 as argument', () => {
@@ -191,7 +214,7 @@ describe('commerce', () => {
             isbn,
             'The expected match should be ISBN-10 with hyphens'
           ).toMatch(/^[01]-[\d-]{9}-[\dX]$/);
-          expect(isbn).toSatisfy((isbn: string) => validator.isISBN(isbn, 10));
+          expect(isbn).toSatisfy((isbn: string) => isISBN(isbn, 10));
         });
 
         it('should return ISBN-13 with hyphen separators when passing variant 13 as argument', () => {
@@ -201,7 +224,7 @@ describe('commerce', () => {
             isbn,
             'The expected match should be ISBN-13 with hyphens'
           ).toMatch(/^978-[01]-[\d-]{9}-\d$/);
-          expect(isbn).toSatisfy((isbn: string) => validator.isISBN(isbn, 13));
+          expect(isbn).toSatisfy((isbn: string) => isISBN(isbn, 13));
         });
 
         it('should return ISBN-10 with space separators when passing variant 10 and space separators as argument', () => {
@@ -211,7 +234,7 @@ describe('commerce', () => {
             isbn,
             'The expected match should be ISBN-10 with space separators'
           ).toMatch(/^[01] [\d ]{9} [\dX]$/);
-          expect(isbn).toSatisfy((isbn: string) => validator.isISBN(isbn, 10));
+          expect(isbn).toSatisfy((isbn: string) => isISBN(isbn, 10));
         });
 
         it('should return ISBN-13 with space separators when passing space separators as argument', () => {
@@ -221,7 +244,7 @@ describe('commerce', () => {
             isbn,
             'The expected match should be ISBN-13 with space separators'
           ).toMatch(/^978 [01] [\d ]{9} \d$/);
-          expect(isbn).toSatisfy((isbn: string) => validator.isISBN(isbn, 13));
+          expect(isbn).toSatisfy((isbn: string) => isISBN(isbn, 13));
         });
       });
     }

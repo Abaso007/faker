@@ -1,20 +1,22 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base",
-    "schedule:earlyMondays",
+    "config:best-practices",
+    "schedule:monthly",
     "group:allNonMajor",
-    ":prHourlyLimitNone",
-    "helpers:pinGitHubActionDigests"
+    ":prHourlyLimitNone"
   ],
-  "labels": ["c: dependencies"],
+  "labels": ["c: dependencies", "p: 1-normal"],
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "milestone": 15,
   "reviewersFromCodeOwners": true,
-  "rangeStrategy": "bump",
+  "rangeStrategy": "pin",
   "packageRules": [
     {
       "groupName": "devDependencies",
-      "matchDepTypes": ["devDependencies"],
-      "rangeStrategy": "bump"
+      "matchDepTypes": ["devDependencies"]
     },
     {
       "groupName": "dependencies",
@@ -32,12 +34,18 @@
       "rangeStrategy": "replace"
     },
     {
-      "groupName": "typescript-eslint",
-      "matchPackagePrefixes": ["@typescript-eslint/"]
+      "groupName": "eslint",
+      "matchPackageNames": [
+        "@eslint/**",
+        "@stylistic/**",
+        "eslint",
+        "eslint-**",
+        "typescript-eslint"
+      ]
     },
     {
       "groupName": "vitest",
-      "matchPackageNames": ["@vitest/coverage-v8", "@vitest/ui", "vitest"]
+      "matchPackageNames": ["@vitest/**", "vitest"]
     },
     {
       "groupName": "prettier",
@@ -49,16 +57,18 @@
     },
     {
       "groupName": "doc-dependencies",
-      "matchPackageNames": [
-        "@algolia/client-search",
-        "typedoc",
-        "typedoc-plugin-missing-exports",
-        "vitepress"
-      ]
+      "matchPackageNames": ["ts-morph", "vitepress"]
+    },
+    {
+      // Disable updates for rimraf until Node 18 support is dropped
+      "groupName": "disabled",
+      "matchPackageNames": ["rimraf"],
+      "enabled": false
     }
   ],
+  "stopUpdatingLabel": "s: on hold",
   "vulnerabilityAlerts": {
-    "labels": ["c: security"],
+    "labels": ["c: security", "p: 2-high"],
     "assignees": ["team:maintainers"]
   }
 }

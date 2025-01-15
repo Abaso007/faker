@@ -13,6 +13,15 @@ export type DateDefinition = LocaleEntry<{
    * The translations for weekdays (Sunday - Saturday).
    */
   weekday: DateEntryDefinition;
+
+  /**
+   * The names of the IANA time zones. Not tied to the current locale.
+   *
+   * Since this is the same for all locales, it is only defined in the `base` locale.
+   *
+   * @see [IANA Time Zone Database](https://www.iana.org/time-zones)
+   */
+  time_zone: string[];
 }>;
 
 /**
@@ -26,8 +35,9 @@ export interface DateEntryDefinition {
 
   /**
    * The short name/abbreviation of the entry.
+   * If null, the locale does not support a short name/abbreviation for the entry.
    */
-  abbr: string[];
+  abbr: string[] | null;
 
   /**
    * The wide name of the entry when used in context. If absent wide will be used instead.

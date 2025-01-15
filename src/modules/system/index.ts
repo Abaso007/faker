@@ -1,5 +1,4 @@
-import type { Faker } from '../..';
-import { bindThisToMemberFunctions } from '../../internal/bind-this-to-member-functions';
+import { ModuleBase } from '../../internal/module-base';
 
 const commonFileTypes = ['video', 'audio', 'image', 'text', 'application'];
 
@@ -36,11 +35,7 @@ const CRON_DAY_OF_WEEK = [
 /**
  * Generates fake data for many computer systems properties.
  */
-export class SystemModule {
-  constructor(private readonly faker: Faker) {
-    bindThisToMemberFunctions(this);
-  }
-
+export class SystemModule extends ModuleBase {
   /**
    * Returns a random file name with extension.
    *
@@ -77,23 +72,26 @@ export class SystemModule {
   ): string {
     const { extensionCount = 1 } = options;
 
-    const baseName = this.faker.word.words().toLowerCase().replace(/\W/g, '_');
+    const baseName = this.faker.word
+      .words()
+      .toLowerCase()
+      .replaceAll(/\W/g, '_');
 
-    const extensionsStr = this.faker.helpers
+    const extensionsSuffix = this.faker.helpers
       .multiple(() => this.fileExt(), { count: extensionCount })
       .join('.');
 
-    if (extensionsStr.length === 0) {
+    if (extensionsSuffix.length === 0) {
       return baseName;
     }
 
-    return `${baseName}.${extensionsStr}`;
+    return `${baseName}.${extensionsSuffix}`;
   }
 
   /**
    * Returns a random file name with a given extension or a commonly used extension.
    *
-   * @param ext Extension. Empty string is considered to be not set.
+   * @param extension The file extension to use. Empty string is considered to be not set.
    *
    * @example
    * faker.system.commonFileName() // 'dollar.jpg'
@@ -101,10 +99,10 @@ export class SystemModule {
    *
    * @since 3.1.0
    */
-  commonFileName(ext?: string): string {
-    const str = this.fileName({ extensionCount: 0 });
+  commonFileName(extension?: string): string {
+    const fileName = this.fileName({ extensionCount: 0 });
 
-    return `${str}.${ext || this.commonFileExt()}`;
+    return `${fileName}.${extension || this.commonFileExt()}`;
   }
 
   /**
@@ -116,7 +114,7 @@ export class SystemModule {
    * @since 3.1.0
    */
   mimeType(): string {
-    const mimeTypeKeys = Object.keys(this.faker.definitions.system.mimeTypes);
+    const mimeTypeKeys = Object.keys(this.faker.definitions.system.mime_type);
 
     return this.faker.helpers.arrayElement(mimeTypeKeys);
   }
@@ -154,17 +152,12 @@ export class SystemModule {
    * @since 3.1.0
    */
   fileType(): string {
-    const typeSet = new Set<string>();
-    const mimeTypes = this.faker.definitions.system.mimeTypes;
+    const mimeTypes = this.faker.definitions.system.mime_type;
 
-    Object.keys(mimeTypes).forEach((m) => {
-      const type = m.split('/')[0];
-
-      typeSet.add(type);
-    });
-
-    const types = Array.from(typeSet);
-    return this.faker.helpers.arrayElement(types);
+    const typeSet = new Set(
+      Object.keys(mimeTypes).map((key) => key.split('/')[0])
+    );
+    return this.faker.helpers.arrayElement([...typeSet]);
   }
 
   /**
@@ -179,24 +172,16 @@ export class SystemModule {
    * @since 3.1.0
    */
   fileExt(mimeType?: string): string {
+    const mimeTypes = this.faker.definitions.system.mime_type;
+
     if (typeof mimeType === 'string') {
-      const mimes = this.faker.definitions.system.mimeTypes;
-      return this.faker.helpers.arrayElement(mimes[mimeType].extensions);
+      return this.faker.helpers.arrayElement(mimeTypes[mimeType].extensions);
     }
 
-    const mimeTypes = this.faker.definitions.system.mimeTypes;
-    const extensionSet = new Set<string>();
-
-    Object.keys(mimeTypes).forEach((m) => {
-      if (mimeTypes[m].extensions instanceof Array) {
-        mimeTypes[m].extensions.forEach((ext) => {
-          extensionSet.add(ext);
-        });
-      }
-    });
-
-    const extensions = Array.from(extensionSet);
-    return this.faker.helpers.arrayElement(extensions);
+    const extensionSet = new Set(
+      Object.values(mimeTypes).flatMap(({ extensions }) => extensions)
+    );
+    return this.faker.helpers.arrayElement([...extensionSet]);
   }
 
   /**
@@ -208,7 +193,7 @@ export class SystemModule {
    * @since 3.1.0
    */
   directoryPath(): string {
-    const paths = this.faker.definitions.system.directoryPaths;
+    const paths = this.faker.definitions.system.directory_path;
     return this.faker.helpers.arrayElement(paths);
   }
 
@@ -220,7 +205,6 @@ export class SystemModule {
    *
    * @since 3.1.0
    */
-  // TODO @prisis 2022-01-25: add a parameter to have the possibility to have one or two ext on file.
   filePath(): string {
     return `${this.directoryPath()}/${this.fileName()}`;
   }
@@ -229,22 +213,22 @@ export class SystemModule {
    * Returns a [semantic version](https://semver.org).
    *
    * @example
-   * faker.system.semver() // '1.1.2'
+   * faker.system.semver() // '1.15.2'
    *
    * @since 3.1.0
    */
   semver(): string {
     return [
       this.faker.number.int(9),
-      this.faker.number.int(9),
-      this.faker.number.int(9),
+      this.faker.number.int(20),
+      this.faker.number.int(20),
     ].join('.');
   }
 
   /**
    * Returns a random [network interface](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/networking_guide/sec-understanding_the_predictable_network_interface_device_names).
    *
-   * @param options The options to use. Defaults to `{}`.
+   * @param options The options to use.
    * @param options.interfaceType The interface type. Can be one of `en`, `wl`, `ww`.
    * @param options.interfaceSchema The interface schema. Can be one of `index`, `slot`, `mac`, `pci`.
    *
@@ -279,25 +263,35 @@ export class SystemModule {
 
     let suffix: string;
     let prefix = '';
-    const digit = () => this.faker.string.numeric({ allowLeadingZeros: true });
     switch (interfaceSchema) {
-      case 'index':
-        suffix = digit();
+      case 'index': {
+        suffix = this.faker.string.numeric();
         break;
-      case 'slot':
-        suffix = `${digit()}${
-          this.faker.helpers.maybe(() => `f${digit()}`) ?? ''
-        }${this.faker.helpers.maybe(() => `d${digit()}`) ?? ''}`;
+      }
+
+      case 'slot': {
+        suffix = `${this.faker.string.numeric()}${
+          this.faker.helpers.maybe(() => `f${this.faker.string.numeric()}`) ??
+          ''
+        }${this.faker.helpers.maybe(() => `d${this.faker.string.numeric()}`) ?? ''}`;
         break;
-      case 'mac':
+      }
+
+      case 'mac': {
         suffix = this.faker.internet.mac('');
         break;
-      case 'pci':
-        prefix = this.faker.helpers.maybe(() => `P${digit()}`) ?? '';
-        suffix = `${digit()}s${digit()}${
-          this.faker.helpers.maybe(() => `f${digit()}`) ?? ''
-        }${this.faker.helpers.maybe(() => `d${digit()}`) ?? ''}`;
+      }
+
+      case 'pci': {
+        prefix =
+          this.faker.helpers.maybe(() => `P${this.faker.string.numeric()}`) ??
+          '';
+        suffix = `${this.faker.string.numeric()}s${this.faker.string.numeric()}${
+          this.faker.helpers.maybe(() => `f${this.faker.string.numeric()}`) ??
+          ''
+        }${this.faker.helpers.maybe(() => `d${this.faker.string.numeric()}`) ?? ''}`;
         break;
+      }
     }
 
     return `${prefix}${interfaceType}${commonInterfaceSchemas[interfaceSchema]}${suffix}`;
@@ -308,7 +302,7 @@ export class SystemModule {
    *
    * @param options The optional options to use.
    * @param options.includeYear Whether to include a year in the generated expression. Defaults to `false`.
-   * @param options.includeNonStandard Whether to include a @yearly, @monthly, @daily, etc text labels in the generated expression. Defaults to `false`.
+   * @param options.includeNonStandard Whether to include a `@yearly`, `@monthly`, `@daily`, etc text labels in the generated expression. Defaults to `false`.
    *
    * @example
    * faker.system.cron() // '45 23 * * 6'
@@ -328,7 +322,7 @@ export class SystemModule {
        */
       includeYear?: boolean;
       /**
-       * Whether to include a @yearly, @monthly, @daily, etc text labels in the generated expression.
+       * Whether to include a `@yearly`, `@monthly`, `@daily`, etc text labels in the generated expression.
        *
        * @default false
        */

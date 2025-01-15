@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { faker } from '../../src';
-import { seededTests } from './../support/seededRuns';
+import { seededTests } from '../support/seeded-runs';
 import { times } from './../support/times';
 
 const NON_SEEDED_BASED_RUN = 5;
@@ -9,9 +9,6 @@ describe('science', () => {
   seededTests(faker, 'science', (t) => {
     t.itEach('chemicalElement', 'unit');
   });
-
-  // Create and log-back the seed for debug purposes
-  faker.seed(Math.ceil(Math.random() * 1_000_000_000));
 
   describe.each(times(NON_SEEDED_BASED_RUN).map(() => faker.seed()))(
     'random seeded tests for seed %i',
@@ -28,7 +25,7 @@ describe('science', () => {
 
           expect(name).toBeTypeOf('string');
           expect(() => {
-            faker.definitions.science.chemicalElement.find(
+            faker.definitions.science.chemical_element.find(
               (element) => element.name === name
             );
           }).toBeTruthy();
@@ -39,7 +36,7 @@ describe('science', () => {
 
           expect(symbol).toBeTypeOf('string');
           expect(() => {
-            faker.definitions.science.chemicalElement.find(
+            faker.definitions.science.chemical_element.find(
               (element) => element.symbol === symbol
             );
           }).toBeTruthy();
@@ -50,7 +47,7 @@ describe('science', () => {
 
           expect(atomicNumber).toBeTypeOf('number');
           expect(() => {
-            faker.definitions.science.chemicalElement.find(
+            faker.definitions.science.chemical_element.find(
               (element) => element.atomicNumber === atomicNumber
             );
           }).toBeTruthy();

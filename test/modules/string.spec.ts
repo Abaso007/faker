@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { faker, FakerError } from '../../src';
-import { seededTests } from './../support/seededRuns';
+import { FakerError, faker } from '../../src';
+import { seededTests } from '../support/seeded-runs';
 import { times } from './../support/times';
 
 const NON_SEEDED_BASED_RUN = 5;
@@ -9,14 +9,14 @@ describe('string', () => {
   seededTests(faker, 'string', (t) => {
     t.describe('fromCharacters', (t) => {
       t.it('with string characters', 'foobar')
-        .it('with string[] characters', 'foobar'.split(''))
+        .it('with string[] characters', [...'foobar'])
         .it('with string characters and length', 'foobar', 5)
-        .it('with string[] characters and length', 'foobar'.split(''), 5)
+        .it('with string[] characters and length', [...'foobar'], 5)
         .it('with string characters and length range', 'foobar', {
           min: 10,
           max: 20,
         })
-        .it('with string[] characters and length range', 'foobar'.split(''), {
+        .it('with string[] characters and length range', [...'foobar'], {
           min: 10,
           max: 20,
         });
@@ -112,6 +112,16 @@ describe('string', () => {
     });
 
     t.itRepeated('uuid', 5);
+
+    t.describe('ulid', (t) => {
+      const ulidRefDate = '2021-02-21T17:09:15.711Z';
+
+      t.it('with string refDate', { refDate: ulidRefDate })
+        .it('with Date refDate', { refDate: new Date(ulidRefDate) })
+        .it('with number refDate', {
+          refDate: new Date(ulidRefDate).getTime(),
+        });
+    });
 
     t.describe('nanoid', (t) => {
       t.itRepeated('noArgs', 5)
@@ -283,7 +293,7 @@ describe('string', () => {
         });
 
         it('should throw if all possible characters being excluded (string[])', () => {
-          const exclude = 'abcdefghijklmnopqrstuvwxyz'.split('');
+          const exclude = [...'abcdefghijklmnopqrstuvwxyz'];
           expect(() =>
             faker.string.alpha({
               length: 5,
@@ -357,7 +367,7 @@ describe('string', () => {
         });
 
         it('should be able to ban all alphabetic characters', () => {
-          const exclude = 'abcdefghijklmnopqrstuvwxyz'.split('');
+          const exclude = [...'abcdefghijklmnopqrstuvwxyz'];
           const alphaText = faker.string.alphanumeric({
             length: 5,
             casing: 'lower',
@@ -385,7 +395,7 @@ describe('string', () => {
         });
 
         it('should be able to ban all numeric characters', () => {
-          const exclude = '0123456789'.split('');
+          const exclude = [...'0123456789'];
           const alphaText = faker.string.alphanumeric({
             length: 5,
             exclude,
@@ -437,7 +447,7 @@ describe('string', () => {
         });
 
         it('should throw if all possible characters being excluded (string[])', () => {
-          const exclude = 'abcdefghijklmnopqrstuvwxyz0123456789'.split('');
+          const exclude = [...'abcdefghijklmnopqrstuvwxyz0123456789'];
           expect(() =>
             faker.string.alphanumeric({
               length: 5,
@@ -645,7 +655,7 @@ describe('string', () => {
           const actual = faker.string.numeric({
             length: 4,
             allowLeadingZeros: true,
-            exclude: '123456789'.split(''),
+            exclude: [...'123456789'],
           });
 
           expect(actual).toBe('0000');
@@ -666,7 +676,7 @@ describe('string', () => {
             faker.string.numeric({
               length: 4,
               allowLeadingZeros: false,
-              exclude: '123456789'.split(''),
+              exclude: [...'123456789'],
             })
           ).toThrow(
             new FakerError(
@@ -692,7 +702,7 @@ describe('string', () => {
         it('should ban all digits passed via exclude', () => {
           const actual = faker.string.numeric({
             length: 1000,
-            exclude: 'c84U1'.split(''),
+            exclude: [...'c84U1'],
           });
 
           expect(actual).toHaveLength(1000);
@@ -724,12 +734,6 @@ describe('string', () => {
           expect(generatedString).toHaveLength(0);
         });
 
-        it('should return string with length of 2^20 if bigger length value is passed', () => {
-          const overMaxValue = 2 ** 28;
-          const generatedString = faker.string.sample(overMaxValue);
-          expect(generatedString).toHaveLength(2 ** 20);
-        });
-
         it('should return string with a specific length', () => {
           const length = 1337;
           const generatedString = faker.string.sample(length);
@@ -753,6 +757,23 @@ describe('string', () => {
           const RFC4122 =
             /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
           expect(UUID).toMatch(RFC4122);
+        });
+      });
+
+      describe(`ulid`, () => {
+        it.each(['invalid', Number.NaN, new Date(Number.NaN)] as const)(
+          'should reject invalid refDates %s',
+          (refDate) => {
+            expect(() => faker.string.ulid({ refDate })).toThrow(
+              new FakerError(`Invalid refDate date: ${refDate.toString()}`)
+            );
+          }
+        );
+
+        it('generates a valid ULID', () => {
+          const ulid = faker.string.ulid();
+          const regex = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
+          expect(ulid).toMatch(regex);
         });
       });
 

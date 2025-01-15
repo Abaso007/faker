@@ -1,10 +1,14 @@
-import isValidBtcAddress from 'validator/lib/isBtcAddress';
+import isCreditCard from 'validator/lib/isCreditCard';
 import { describe, expect, it } from 'vitest';
-import { faker } from '../../src';
+import { faker, fakerZH_CN } from '../../src';
 import { FakerError } from '../../src/errors/faker-error';
+import {
+  BitcoinAddressFamily,
+  BitcoinNetwork,
+} from '../../src/modules/finance/bitcoin';
 import ibanLib from '../../src/modules/finance/iban';
 import { luhnCheck } from '../../src/modules/helpers/luhn-check';
-import { seededTests } from './../support/seededRuns';
+import { seededTests } from '../support/seeded-runs';
 import { times } from './../support/times';
 
 const NON_SEEDED_BASED_RUN = 5;
@@ -20,16 +24,11 @@ describe('finance', () => {
       'currencyCode',
       'currencyName',
       'currencySymbol',
-      'bitcoinAddress',
       'litecoinAddress',
       'creditCardCVV',
       'ethereumAddress',
       'transactionDescription'
     );
-
-    t.describe('account', (t) => {
-      t.it('noArgs').it('with length', 10);
-    });
 
     t.describe('accountNumber', (t) => {
       t.it('noArgs')
@@ -60,17 +59,7 @@ describe('finance', () => {
           dec: 5,
           symbol: '#',
           autoFormat: false,
-        })
-        .it('with min', 10)
-        .it('with leagcy max', undefined, 50)
-        .it('with leagcy dec', undefined, undefined, 5)
-        .it(
-          'with min, leagcy max, leagcy dec and leagcy symbol',
-          10,
-          50,
-          5,
-          '$'
-        );
+        });
     });
 
     t.describe('bic', (t) => {
@@ -83,23 +72,14 @@ describe('finance', () => {
         .it('with formatted and countryCode option', {
           formatted: true,
           countryCode: 'DE',
-        })
-        .it('with formatted', true)
-        .it('with formatted and countryCode', true, 'DE');
+        });
     });
 
     t.describe('creditCardNumber', (t) => {
       t.it('noArgs')
         .it('with issuer', 'visa')
-        .it('with issuer option', { issuer: 'visa' });
-    });
-
-    t.describe('mask', (t) => {
-      t.it('noArgs')
-        .it('with length', 5)
-        .it('with parenthesis', undefined, true)
-        .it('with ellipsis', undefined, undefined, true)
-        .it('with length, parenthesis and ellipsis', 5, true, true);
+        .it('with issuer option visa', { issuer: 'visa' })
+        .it('with issuer option mastercard', { issuer: 'mastercard' });
     });
 
     t.describe('maskedNumber', (t) => {
@@ -113,33 +93,20 @@ describe('finance', () => {
           ellipsis: true,
         });
     });
+
+    t.describe('bitcoinAddress', (t) => {
+      t.it('noArgs')
+        .it('with type option', { type: BitcoinAddressFamily.Legacy })
+        .it('with type and network option', {
+          type: BitcoinAddressFamily.Legacy,
+          network: BitcoinNetwork.Mainnet,
+        });
+    });
   });
 
   describe.each(times(NON_SEEDED_BASED_RUN).map(() => faker.seed()))(
     'random seeded tests for seed %i',
     () => {
-      describe('account()', () => {
-        it('should supply a default length', () => {
-          const accountNumber = faker.finance.account();
-
-          expect(accountNumber).toBeTruthy();
-          expect(
-            accountNumber,
-            'The length of the account number should be 8 characters long'
-          ).toHaveLength(8);
-        });
-
-        it('should have same length as given length number', () => {
-          const accountNumber = faker.finance.account(16);
-
-          expect(accountNumber).toBeTruthy();
-          expect(
-            accountNumber,
-            'The length of the account number should match the given number'
-          ).toHaveLength(16);
-        });
-      });
-
       describe('accountNumber()', () => {
         it('should supply a default length', () => {
           const accountNumber = faker.finance.accountNumber();
@@ -189,34 +156,17 @@ describe('finance', () => {
         });
       });
 
-      describe('mask()', () => {
-        it('should set a default length', () => {
-          const expected = 4; // default account mask length
-          const mask = faker.finance.mask(undefined, false, false);
-
-          expect(
-            mask,
-            `The expected default mask length is ${expected} but it was ${mask.length}`
-          ).toHaveLength(expected);
-        });
-
-        it('should set a specified length', () => {
-          let expected = faker.number.int(20);
-
-          expected = expected || 4;
-
-          const mask = faker.finance.mask(expected, false, false); // the length of mask picks 4 if the random number generator picks 0
-
-          expect(
-            mask,
-            `The expected default mask length is ${expected} but it was ${mask.length}`
-          ).toHaveLength(expected);
-        });
-      });
-
       describe('maskedNumber()', () => {
+        it('should return contain parenthesis, ellipsis and have a length of 4 by default', () => {
+          // eslint-disable-next-line @typescript-eslint/no-deprecated
+          const actual = faker.finance.maskedNumber();
+
+          expect(actual).toMatch(/\(\.{3}\d{4}\)/);
+        });
+
         it('should set a default length', () => {
           const expected = 4; // default account mask length
+          // eslint-disable-next-line @typescript-eslint/no-deprecated
           const mask = faker.finance.maskedNumber({
             parens: false,
             ellipsis: false,
@@ -229,10 +179,9 @@ describe('finance', () => {
         });
 
         it('should set a specified length', () => {
-          let expected = faker.number.int(20);
+          const expected = faker.number.int({ min: 1, max: 20 });
 
-          expected = expected || 4;
-
+          // eslint-disable-next-line @typescript-eslint/no-deprecated
           const mask = faker.finance.maskedNumber({
             length: expected,
             parens: false,
@@ -252,82 +201,67 @@ describe('finance', () => {
 
           expect(amount).toBeTruthy();
           expect(amount).toBeTypeOf('string');
-          expect(
-            +amount,
-            'the amount should be greater than 0'
-          ).toBeGreaterThan(0);
-          expect(+amount, 'the amount should be less than 1001').toBeLessThan(
-            1001
-          );
-        });
-
-        it('should use the default decimal location when not passing arguments', () => {
-          let amount = faker.finance.amount();
-
-          amount = faker.finance.amount(100, 100, 1);
-
-          expect(amount).toBeTruthy();
-          expect(amount, 'the amount should be equal 100.0').toBe('100.0');
+          expect(+amount).toBeGreaterThanOrEqual(0);
+          expect(+amount).toBeLessThanOrEqual(1000);
         });
 
         //TODO: add support for more currency and decimal options
         it('should not include a currency symbol by default', () => {
           const amount = faker.finance.amount();
 
+          expect(amount).toBeTruthy();
+          expect(amount).toBeTypeOf('string');
           expect(
             amount,
             'The expected match should not include a currency symbol'
-          ).toMatch(/^[0-9\.]+$/);
+          ).toMatch(/^[0-9.]+$/);
         });
 
         it('should handle negative amounts', () => {
-          const amount = faker.finance.amount(-200, -1);
+          const amount = faker.finance.amount({ min: -200, max: -1 });
 
           expect(amount).toBeTruthy();
           expect(amount).toBeTypeOf('string');
-          expect(+amount, 'the amount should be less than 0').toBeLessThan(0);
-          expect(
-            +amount,
-            'the amount should be greater than -201'
-          ).toBeGreaterThan(-201);
+          expect(+amount).toBeLessThanOrEqual(-1);
+          expect(+amount).toBeGreaterThanOrEqual(-200);
+        });
+
+        it('should use the default dec', () => {
+          const amount = faker.finance.amount({ min: 100, max: 100 });
+
+          expect(amount).toBeTruthy();
+          expect(amount).toBeTypeOf('string');
+          expect(amount).toBe('100.00');
         });
 
         it('should handle argument dec', () => {
-          const amount = faker.finance.amount(100, 100, 1);
+          const amount = faker.finance.amount({ min: 100, max: 100, dec: 1 });
 
           expect(amount).toBeTruthy();
-          expect(amount, 'the amount should be equal 100.0').toBe('100.0');
+          expect(amount).toBeTypeOf('string');
+          expect(amount).toBe('100.0');
         });
 
         it('should handle argument dec = 0', () => {
-          const amount = faker.finance.amount(100, 100, 0);
+          const amount = faker.finance.amount({ min: 100, max: 100, dec: 0 });
 
           expect(amount).toBeTruthy();
-          expect(amount, 'the amount should be equal 100').toBe('100');
-        });
-
-        it('should return a string', () => {
-          const amount = faker.finance.amount(100, 100, 0);
-
-          expect(amount).toBeTruthy();
-          expect(amount, 'the amount type should be string').toBeTypeOf(
-            'string'
-          );
+          expect(amount).toBeTypeOf('string');
+          expect(amount).toBe('100');
         });
 
         it.each([false, undefined])(
           'should return unformatted if autoformat is %s',
           (autoFormat) => {
             const number = 6000;
-            const amount = faker.finance.amount(
-              number,
-              number,
-              0,
-              undefined,
-              autoFormat
-            );
+            const amount = faker.finance.amount({
+              min: number,
+              max: number,
+              dec: 0,
+              autoFormat,
+            });
 
-            expect(amount).toStrictEqual(number.toString());
+            expect(amount).toBe(number.toString());
           }
         );
 
@@ -338,13 +272,12 @@ describe('finance', () => {
             minimumFractionDigits: decimalPlaces,
           });
 
-          const amount = faker.finance.amount(
-            number,
-            number,
-            decimalPlaces,
-            undefined,
-            true
-          );
+          const amount = faker.finance.amount({
+            min: number,
+            max: number,
+            dec: decimalPlaces,
+            autoFormat: true,
+          });
 
           expect(amount).toStrictEqual(expected);
         });
@@ -394,17 +327,96 @@ describe('finance', () => {
       });
 
       describe('bitcoinAddress()', () => {
+        const m_legacy = /^1[A-HJ-NP-Za-km-z1-9]{25,39}$/;
+        const t_legacy = /^m[A-HJ-NP-Za-km-z1-9]{25,39}$/;
+        const m_segwit = /^3[A-HJ-NP-Za-km-z1-9]{25,39}$/;
+        const t_segwit = /^2[A-HJ-NP-Za-km-z1-9]{25,39}$/;
+        const m_bech32 = /^bc1[ac-hj-np-z02-9]{39,39}$/;
+        const t_bech32 = /^tb1[ac-hj-np-z02-9]{39,39}$/;
+        const m_taproot = /^bc1p[ac-hj-np-z02-9]{58,58}$/;
+        const t_taproot = /^tb1p[ac-hj-np-z02-9]{58,58}$/;
+
+        const isBtcAddress = (address: string) =>
+          [
+            m_legacy,
+            t_legacy,
+            m_segwit,
+            t_segwit,
+            m_bech32,
+            t_bech32,
+            m_taproot,
+            t_taproot,
+          ].some((r) => r.test(address));
+
         it('should return a valid bitcoin address', () => {
           const bitcoinAddress = faker.finance.bitcoinAddress();
-          /**
-           *  Note: Although the total length of a Bitcoin address can be 25-33 characters, regex quantifiers only check the preceding token
-           *  Therefore we take one from the total length of the address not including the first character ([13])
-           */
 
           expect(bitcoinAddress).toBeTruthy();
           expect(bitcoinAddress).toBeTypeOf('string');
-          expect(bitcoinAddress).toSatisfy(isValidBtcAddress);
+          expect(bitcoinAddress).toSatisfy(isBtcAddress);
         });
+
+        it.each([
+          [BitcoinAddressFamily.Legacy, m_legacy],
+          [BitcoinAddressFamily.Segwit, m_segwit],
+          [BitcoinAddressFamily.Bech32, m_bech32],
+          [BitcoinAddressFamily.Taproot, m_taproot],
+        ] as const)(
+          'should handle the type = $type argument',
+          (type, regex) => {
+            const bitcoinAddress = faker.finance.bitcoinAddress({
+              type,
+            });
+
+            expect(bitcoinAddress).toBeTruthy();
+            expect(bitcoinAddress).toBeTypeOf('string');
+            expect(bitcoinAddress).toSatisfy(isBtcAddress);
+            expect(bitcoinAddress).toMatch(regex);
+          }
+        );
+
+        it.each([
+          [BitcoinNetwork.Mainnet, [m_legacy, m_segwit, m_bech32, m_taproot]],
+          [BitcoinNetwork.Testnet, [t_legacy, t_segwit, t_bech32, t_taproot]],
+        ] as const)(
+          'should handle the network = $network argument',
+          (network, regexes) => {
+            const bitcoinAddress = faker.finance.bitcoinAddress({
+              network,
+            });
+
+            expect(bitcoinAddress).toBeTruthy();
+            expect(bitcoinAddress).toBeTypeOf('string');
+            expect(bitcoinAddress).toSatisfy(isBtcAddress);
+            expect(bitcoinAddress).toSatisfy<string>((v) =>
+              regexes.some((r) => r.test(v))
+            );
+          }
+        );
+
+        it.each([
+          [BitcoinAddressFamily.Legacy, BitcoinNetwork.Mainnet, m_legacy],
+          [BitcoinAddressFamily.Legacy, BitcoinNetwork.Testnet, t_legacy],
+          [BitcoinAddressFamily.Segwit, BitcoinNetwork.Mainnet, m_segwit],
+          [BitcoinAddressFamily.Segwit, BitcoinNetwork.Testnet, t_segwit],
+          [BitcoinAddressFamily.Bech32, BitcoinNetwork.Mainnet, m_bech32],
+          [BitcoinAddressFamily.Bech32, BitcoinNetwork.Testnet, t_bech32],
+          [BitcoinAddressFamily.Taproot, BitcoinNetwork.Mainnet, m_taproot],
+          [BitcoinAddressFamily.Taproot, BitcoinNetwork.Testnet, t_taproot],
+        ] as const)(
+          'should handle the type = $type and network = $network arguments',
+          (type, network, regex) => {
+            const bitcoinAddress = faker.finance.bitcoinAddress({
+              type,
+              network,
+            });
+
+            expect(bitcoinAddress).toBeTruthy();
+            expect(bitcoinAddress).toBeTypeOf('string');
+            expect(bitcoinAddress).toSatisfy(isBtcAddress);
+            expect(bitcoinAddress).toMatch(regex);
+          }
+        );
       });
 
       describe('litecoinAddress()', () => {
@@ -419,7 +431,7 @@ describe('finance', () => {
       describe('creditCardNumber()', () => {
         it('should return a random credit card number', () => {
           let number = faker.finance.creditCardNumber();
-          number = number.replace(/\D/g, ''); // remove formatting
+          number = number.replaceAll(/\D/g, ''); // remove formatting
 
           expect(number.length).toBeGreaterThanOrEqual(13);
           expect(number.length).toBeLessThanOrEqual(20);
@@ -454,11 +466,13 @@ describe('finance', () => {
         it('should return a correct credit card number when issuer provided', () => {
           //TODO: implement checks for each format with regexp
           const visa = faker.finance.creditCardNumber('visa');
-          expect(visa).toMatch(/^4(([0-9]){12}|([0-9]){3}(\-([0-9]){4}){3})$/);
+          expect(visa).toMatch(/^4(([0-9]){12}|([0-9]){3}(-([0-9]){4}){3})$/);
           expect(visa).toSatisfy(luhnCheck);
 
           const mastercard = faker.finance.creditCardNumber('mastercard');
-          expect(mastercard).toMatch(/^(5[1-5]\d{2}|6771)(\-\d{4}){3}$/);
+          expect(mastercard).toSatisfy((value) =>
+            isCreditCard(value as string, { provider: 'mastercard' })
+          );
           expect(mastercard).toSatisfy(luhnCheck);
 
           const discover = faker.finance.creditCardNumber('discover');
@@ -476,9 +490,17 @@ describe('finance', () => {
           expect(maestro).toSatisfy(luhnCheck);
         });
 
+        it('should generate a valid union pay credit card', () => {
+          const actual = fakerZH_CN.finance.creditCardNumber('unionpay');
+          expect(actual).toSatisfy(luhnCheck);
+          expect(actual).toSatisfy((value) =>
+            isCreditCard(value as string, { provider: 'unionpay' })
+          );
+        });
+
         it('should return custom formatted strings', () => {
           let number = faker.finance.creditCardNumber('###-###-##L');
-          expect(number).toMatch(/^\d{3}\-\d{3}\-\d{3}$/);
+          expect(number).toMatch(/^\d{3}-\d{3}-\d{3}$/);
           expect(number).toSatisfy(luhnCheck);
 
           number = faker.finance.creditCardNumber('234[5-9]#{999}L');
@@ -557,7 +579,10 @@ describe('finance', () => {
         });
 
         it('should return a specific and formally correct IBAN number', () => {
-          const iban = faker.finance.iban(false, 'DE');
+          const iban = faker.finance.iban({
+            formatted: false,
+            countryCode: 'DE',
+          });
           const bban = iban.substring(4) + iban.substring(0, 4);
           const countryCode = iban.substring(0, 2);
 
@@ -572,7 +597,10 @@ describe('finance', () => {
           'throws an error for unsupported country code "%s"',
           (unsupportedCountryCode) =>
             expect(() =>
-              faker.finance.iban(false, unsupportedCountryCode)
+              faker.finance.iban({
+                formatted: false,
+                countryCode: unsupportedCountryCode,
+              })
             ).toThrow(
               new FakerError(
                 `Country code ${unsupportedCountryCode} not supported.`
